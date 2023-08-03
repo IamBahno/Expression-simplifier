@@ -1,18 +1,22 @@
 from lex_analysis import Token,InputParser
 import tools
 from error import errorExit
+from math import pi,e
 
-# token = None
-# token = InputParser.GetToken()
-# while(token.type != "eof_token" and token.type != "error_token"):
-#     tools.printToken(token)
-#     token = InputParser.GetToken()
 
-# if(token.type == "eof_token"):
-#     print("EOF")
 
-# if(token.type == "error_token"):
-#     print("ERROR")
+def printTree(root):
+    if(isinstance(root,FunctionNode)):
+        return f"(Funkce:{root.type},argument:({printTree(root.child)}))"
+    elif(isinstance(root,OperatorNode)):
+        return f"[Operator:{root.type},leva_strana:{printTree(root.left_child)},prava_strana:{printTree(root.right_child)}]"
+
+    elif(isinstance(root,OperandNode)):
+        if(root.type == "var"):
+            return f"<Operand:{root.type},value:{root.value.name}>"
+        else:
+            return f"<Operand:{root.type},value:{root.value.value}>"
+
 
 #load tokens
 #check syntax
@@ -99,19 +103,16 @@ class SyntaxAnalysis():
                 #stacking operators
                 if stack == []:
                     stack.append(i)
-                    print(1)
                 else:
                     #always push right_brack
                     if(i.value == "right_brack"):
                         stack.append(i)
-                        print(2)
 
                     #right brack at top of stack
                     elif stack[len(stack)-1].value == "right_brack":
                         #always push on right brack
                         if i.value != "left_brack":
                             stack.append(i)
-                            print(3)
 
                         #unless its left bracket
                         else:
@@ -130,14 +131,11 @@ class SyntaxAnalysis():
                     #push at top of the stack
                     elif SyntaxAnalysis.operatorPriority( stack[len(stack)-1] ) < SyntaxAnalysis.operatorPriority(i):
                         stack.append(i)
-                        print(4)
                     #same prirority, "^" pop to input, otherwise push to stack (left/right associativity)
                     elif SyntaxAnalysis.operatorPriority( stack[len(stack)-1] ) == SyntaxAnalysis.operatorPriority(i):
                         if(i.value=="exp"):
                             prefixList.append(i)
                         else:
-                            print(5)
-
                             stack.append(i)
                     #new operator have lesser priority
                     #pop until you reach your or lower
@@ -146,7 +144,6 @@ class SyntaxAnalysis():
                     elif SyntaxAnalysis.operatorPriority( stack[len(stack)-1] ) > SyntaxAnalysis.operatorPriority(i):
                         while stack!=[] and stack[len(stack)-1].value != "right_brack" and SyntaxAnalysis.operatorPriority(stack[len(stack)-1]) > SyntaxAnalysis.operatorPriority(i):
                             prefixList.append(stack.pop())
-                        print(6)
                         
                         stack.append(i)
         #pop operators on stack
@@ -160,6 +157,147 @@ class SyntaxAnalysis():
         
             
 
+class ExpressionNode():
+    def __init__(self):
+        pass
+
+class ExpressionTree():
+    def __init__(self,token_list):
+        self.token_list = token_list
+        self.root = None
+
+    # function constants converts  to floats
+    def tokenToNode(token : Token) -> ExpressionNode :
+        if token.type == "operator":
+            return OperatorNode(token)
+        elif token.type in ["int","float","var"]:
+            return OperandNode(token)
+        elif token.type == "func":
+            if(token.value == "pi"):
+                tmp = OperandNode(Token("float",pi))
+                tmp.value.constant_value = "pi"
+                return tmp
+            elif(token.value == "exp"):
+                tmp = OperandNode(Token("float",e))
+                tmp.value.constant_value = "exp"
+                return tmp
+            else:
+                if token.value not in ["sin","cos","ln"]:
+                    return errorExit("Not known function error")
+                else:
+                    return FunctionNode(token)
+        else:
+            return OperandNode(token)
+    
+    def isClosed(root) -> True:
+        if(isinstance(root,FunctionNode)):
+            if(root.child == None):
+                return False
+            else:
+                return ExpressionTree.isClosed(root.child)
+        elif(isinstance(root,OperandNode)):
+            return True
+        elif(isinstance(root,OperatorNode)):
+            if(root.left_child == None or root.right_child == None):
+                return False
+            else:
+                return ExpressionTree.isClosed(root.left_child) and ExpressionTree.isClosed(root.right_child)
+        else:
+            return False
+    
+    def addNodeToOpen(root,new_node) -> ExpressionNode:
+        if(isinstance(root,FunctionNode)):
+            if(root.child == None):
+                root.child = new_node
+            else:
+                root.child = ExpressionNode.addNodeToOpen(root.child,new_node)
+        elif(isinstance(root,OperatorNode)):
+            if(root.left_child == None):
+                root.left_child = new_node
+            elif(ExpressionTree.isClosed(root.left_child) == False):
+                root.left_child = ExpressionTree.addNodeToOpen(root.left_child,new_node)
+            elif(root.right_child == None):
+                root.right_child = new_node
+            elif(ExpressionTree.isClosed(root.right_child) == False):
+                root.right_child = ExpressionTree.addNodeToOpen(root.right_child,new_node)
+            else:
+                errorExit("Adding node to close operator")
+        elif(isinstance(root,OperandNode)):
+            errorExit("Adding node to operand")
+        else:
+            errorExit("unknown problem")
+        return root
+        
+
+    def tokenListToNodeList(tokenList):
+        nodeList = []
+        for i in tokenList:
+            nodeList.append(ExpressionTree.tokenToNode(i))
+        return nodeList
+    
+            
+
+    def constructTree(self) -> ExpressionNode:
+        nodeList = ExpressionTree.tokenListToNodeList(self.token_list)
+        root = nodeList.pop(0)
+        for i in range(len(nodeList)):
+            if(ExpressionTree.isClosed(root)):
+                break
+            root = ExpressionTree.addNodeToOpen(root,nodeList.pop(0))
+
+        if nodeList != []:
+            print(nodeList[0].value.value)
+            errorExit("wrong syntax of expression")
+        return root
+
+
+
+
+
+
+
+
+
+
+class OperatorNode(ExpressionNode):
+    def __init__(self,operator):
+        super().__init__()
+        self.type = operator.value # exp,mul,div,plus,minus,equal
+        self.left_child = None
+        self.right_child = None
+
+
+class OperandNode(ExpressionNode):
+    def __init__(self,operand):
+        super().__init__()
+        self.type = operand.type # var,int,float
+        if self.type == "int":
+            self.value  = IntegerValue(operand)
+        if self.type == "float":
+            self.value  = FloatValue(operand)
+        if self.type == "var":
+            self.value  = VarValue(operand)
+
+class FunctionNode(ExpressionNode):
+    def __init__(self,operator):
+        super().__init__()
+        self.type = operator.value # sin,cos,
+        self.child = None
+
+class IntegerValue():
+    def __init__(self, operand):
+        self.value = operand.value
+
+#dodelat nejak pi a exp
+class FloatValue():
+    def __init__(self, operand):
+        self.value = operand.value
+        self.constant_value = None
+
+class VarValue():
+    def __init__(self, operand):
+        self.name = operand.value
+
 
 analyser = SyntaxAnalysis()
 analyser.loadTokens()
@@ -170,3 +308,8 @@ print("--------------")
 analyser.infixToPrefix()
 for i in analyser.token_list:
     tools.printToken(i)
+print("--------------")
+strom = ExpressionTree(analyser.token_list)
+strom.root = strom.constructTree()
+
+print(printTree(strom.root))

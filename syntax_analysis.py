@@ -16,6 +16,8 @@ def printTree(root):
             return f"<Operand:{root.type},value:{root.value.name}>"
         else:
             return f"<Operand:{root.type},value:{root.value.value}>"
+    else:
+        print("error")
 
 
 #load tokens
@@ -177,6 +179,10 @@ class ExpressionNode():
     def __init__(self):
         pass
 
+    def applyRule(node,rule):
+        # return OperandNode(Token("int",5))
+        return node
+
 
 class ExpressionTree():
     def __init__(self,token_list):
@@ -268,7 +274,10 @@ class ExpressionTree():
         return root
 
     def generateRules(node):
-        return ["pravidlo1"]
+        if(isinstance(node,OperandNode)):
+            return []
+        else:
+            return ["pravidlo"]
 
 
     def generatePathAndRules(self,node,path):
@@ -282,6 +291,50 @@ class ExpressionTree():
             self.generatePathAndRules(node.right_child,path+"r")
         elif(isinstance(node,FunctionNode)):
             self.generatePathAndRules(node.child,path+"d")
+    
+
+
+    # modify given tree
+    def applyRuleOnTree(self,path_and_rule):
+        if(path_and_rule.path == ""):
+            self.root.applyRule(path_and_rule.rule)
+            return
+        
+        node_to_expend = self.root
+        #loop until the next node is to expend
+        i = 0
+        while i != len(path_and_rule.path) - 1:
+            if(i == 'l'):
+                node_to_expend = node_to_expend.left_child
+            elif(i == 'r'):
+                node_to_expend = node_to_expend.right_child
+            elif(i == 'd'):
+                node_to_expend = node_to_expend.child
+            i += 1
+
+        #sem to spadne vzdycky (snad)
+        if(len(path_and_rule.path)==1):
+            if(path_and_rule.path == "l"):
+                node_to_expend.left_child = ExpressionNode.applyRule(self.root.left_child,path_and_rule.rule)
+            elif(path_and_rule.path == "r"):
+                node_to_expend.right_child = ExpressionNode.applyRule(node_to_expend.right_child,path_and_rule.rule)
+            elif(path_and_rule.path == "d"):
+                node_to_expend.child = ExpressionNode.applyRule(node_to_expend.child,path_and_rule.rule)
+            return
+            
+
+
+
+
+    #return list of new trees
+    def generateNextGeneration(self):
+        newTrees = []
+        for i in self.path_and_rules:
+            treeCopy = copy.deepcopy(self)
+            treeCopy.path_and_rules = []
+            treeCopy.applyRuleOnTree(i)
+            newTrees.append( treeCopy)
+        return newTrees
             
 
 
@@ -349,8 +402,17 @@ strom = ExpressionTree(analyser.token_list)
 strom.root = strom.constructTree()
 
 print(printTree(strom.root))
+print(strom.root)
 
 strom.generatePathAndRules(strom.root,"")
 
-for i in strom.path_and_rules:
-    print(i.path)
+print("_-------------_")
+stromy = strom.generateNextGeneration()
+
+for i in stromy:
+    print(printTree(i.root))
+
+
+# print(stromy[1].root)
+# print(stromy[1].root.left_child)
+# print(stromy[1].root.right_child)

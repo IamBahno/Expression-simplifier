@@ -2,7 +2,7 @@ from lex_analysis import Token,InputParser
 import tools
 from error import errorExit
 from math import pi,e
-
+import copy
 
 
 def printTree(root):
@@ -88,6 +88,17 @@ class SyntaxAnalysis():
                 self.token_list = new_list
                 break
 
+        # zaporne cisla problem
+        # for i in range(len(self.token_list)):
+        #     if(self.token_list[i].value == "minus"):
+        #         if(i == 0 or (self.token_list[i-1].type == "func" and (self.token_list[i-1].value != "exp" or self.token_list[i-1].value != "pi")) or self.token_list[i-1].type == "operator" ):
+        #             new_list = []
+        #             new_list.extend(self.token_list[:i])
+        #             new_list.append(Token("int",0))
+        #             new_list.extend(self.token_list[i:])
+        #             self.token_list = new_list
+        #             break        
+
 
         self.token_list.reverse()
 
@@ -155,14 +166,21 @@ class SyntaxAnalysis():
 
 
         
-            
+#projde strom a vraci
+class PathAndRule():
+    def __init__(self,path,rule):
+        self.path = path # "lrdl" l=left, r = right, d = down
+        self.rule = rule
+  
 
 class ExpressionNode():
     def __init__(self):
         pass
 
+
 class ExpressionTree():
     def __init__(self,token_list):
+        self.path_and_rules = []
         self.token_list = token_list
         self.root = None
 
@@ -246,9 +264,27 @@ class ExpressionTree():
             root = ExpressionTree.addNodeToOpen(root,nodeList.pop(0))
 
         if nodeList != []:
-            print(nodeList[0].value.value)
             errorExit("wrong syntax of expression")
         return root
+
+    def generateRules(node):
+        return ["pravidlo1"]
+
+
+    def generatePathAndRules(self,node,path):
+        rules = ExpressionTree.generateRules(node)
+        for i in rules:
+            self.path_and_rules.append(PathAndRule(path,i))
+        if(isinstance(node,OperandNode)):
+            return
+        elif(isinstance(node,OperatorNode)):
+            self.generatePathAndRules(node.left_child,path+"l")
+            self.generatePathAndRules(node.right_child,path+"r")
+        elif(isinstance(node,FunctionNode)):
+            self.generatePathAndRules(node.child,path+"d")
+            
+
+
 
 
 
@@ -313,3 +349,8 @@ strom = ExpressionTree(analyser.token_list)
 strom.root = strom.constructTree()
 
 print(printTree(strom.root))
+
+strom.generatePathAndRules(strom.root,"")
+
+for i in strom.path_and_rules:
+    print(i.path)

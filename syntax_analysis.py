@@ -178,9 +178,10 @@ class PathAndRule():
 class ExpressionNode():
     def __init__(self):
         pass
-
     def applyRule(node,rule):
-        # return OperandNode(Token("int",5))
+        if (rule.type in ["basic_plus","basic_minus","basic_div","basic_mul","basic_exp"]):
+            node = applyBasicOperations(node,rule)
+    # return OperandNode(Token("int",5))
         return node
 
 
@@ -273,15 +274,11 @@ class ExpressionTree():
             errorExit("wrong syntax of expression")
         return root
 
-    def generateRules(node):
-        if(isinstance(node,OperandNode)):
-            return []
-        else:
-            return ["pravidlo"]
+
 
 
     def generatePathAndRules(self,node,path):
-        rules = ExpressionTree.generateRules(node)
+        rules = generateRules(node)
         for i in rules:
             self.path_and_rules.append(PathAndRule(path,i))
         if(isinstance(node,OperandNode)):
@@ -297,7 +294,7 @@ class ExpressionTree():
     # modify given tree
     def applyRuleOnTree(self,path_and_rule):
         if(path_and_rule.path == ""):
-            self.root.applyRule(path_and_rule.rule)
+            self.root = self.root.applyRule(path_and_rule.rule)
             return
         
         node_to_expend = self.root
@@ -349,7 +346,7 @@ class ExpressionTree():
 
 
 class OperatorNode(ExpressionNode):
-    def __init__(self,operator):
+    def __init__(self,operator : Token):
         super().__init__()
         self.type = operator.value # exp,mul,div,plus,minus,equal
         self.left_child = None
@@ -388,31 +385,96 @@ class VarValue():
         self.name = operand.value
 
 
-analyser = SyntaxAnalysis()
-analyser.loadTokens()
-analyser.checkSyntax()
-for i in analyser.token_list:
-    tools.printToken(i)
-print("--------------")
-analyser.infixToPrefix()
-for i in analyser.token_list:
-    tools.printToken(i)
-print("--------------")
-strom = ExpressionTree(analyser.token_list)
-strom.root = strom.constructTree()
 
-print(printTree(strom.root))
-print(strom.root)
+class Rules():
+    def __init__(self,type):
+        self.type = type
 
-strom.generatePathAndRules(strom.root,"")
-
-print("_-------------_")
-stromy = strom.generateNextGeneration()
-
-for i in stromy:
-    print(printTree(i.root))
+# returns rules: plus/minus/divide/multiply/exp
+def checkForBasicOperations(node):
+    #it is operand above 2 operators
+    if isinstance(node, OperatorNode) and isinstance(node.left_child, OperandNode)  and isinstance(node.right_child, OperandNode):
+        #both sides are variables
+        # all but x^x
+        if isinstance(node.left_child.value, VarValue) and isinstance(node.right_child.value, VarValue) and (node.left_child.value.name == node.right_child.value.name):
+            if node.type == "plus":
+                return Rules("basic_plus")
+            if node.type == "minus":
+                return Rules("basic_minus")
+            if node.type == "div":
+                return Rules("basic_div")
+            if node.type == "mul":
+                return Rules("basic_mul")
+            return
 
 
-# print(stromy[1].root)
-# print(stromy[1].root.left_child)
-# print(stromy[1].root.right_child)
+        #both sides are numbers
+        #can do all operations
+        if (isinstance(node.left_child.value, IntegerValue)or isinstance(node.left_child.value, FloatValue)) and (isinstance(node.right_child.value, IntegerValue) or isinstance(node.right_child.value, FloatValue)):
+            if node.type == "plus":
+                return Rules("basic_plus")
+            if node.type == "minus":
+                return Rules("basic_minus")
+            if node.type == "div":
+                return Rules("basic_div")
+            if node.type == "mul":
+                return Rules("basic_mul")
+            if node.type == "exp":
+                return Rules("basic_exp")
+
+    else:
+        return
+
+def generateRules(node:ExpressionNode):
+    rules = []
+    rule = checkForBasicOperations(node)
+    if(rule == None):
+        return rules
+
+    rules.append(rule)
+    return rules
+
+def applyBasicOperations(node,rule):
+    #operations at variables
+    new_node = None
+    if(isinstance(node.left_child.value,VarValue)):
+        if(rule.type == "basic_plus"):
+            new_node = OperatorNode(Token("operator","mul"))
+            new_node.left_child = OperandNode(Token("int","2"))
+            new_node.right_child = OperandNode(Token("var",node.left_child.value.name))
+        if(rule.type == "basic_minus"):
+            new_node = OperandNode(Token("int","0"))
+        if(rule.type == "basic_div"):
+            new_node = OperandNode(Token("int","1"))
+        if(rule.type == "basic_mul"):
+            new_node = OperatorNode(Token("operator","exp"))
+            new_node.left_child = OperandNode(Token("var",node.left_child.value.name))
+            new_node.right_child = OperandNode(Token("int","2"))
+
+    #operations on numbers
+    else:
+        value = 0
+        if(rule.type == "basic_plus"):
+            value = node.left_child.value.value + node.right_child.value.value
+        if(rule.type == "basic_minus"):
+            value = node.left_child.value.value - node.right_child.value.value
+        if(rule.type == "basic_mul"):
+            value = node.left_child.value.value * node.right_child.value.value
+        if(rule.type == "basic_div"):
+            if(node.right_child.value.value == 0):
+                return node
+            value = node.left_child.value.value / node.right_child.value.value
+        if(rule.type == "basic_exp"):
+            value = node.left_child.value.value ** node.right_child.value.value
+
+        if type(value) == int:
+            new_node = OperandNode(Token("int",value))
+        else:
+            new_node = OperandNode(Token("float",value))
+
+
+
+
+    return new_node
+
+

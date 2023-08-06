@@ -184,12 +184,47 @@ class ExpressionNode():
     # return OperandNode(Token("int",5))
         return node
 
+    def treeEqual(original_node,compare_to):
+        if(type(original_node) != type(compare_to)):
+            return False
+        if(isinstance(original_node,OperatorNode)):
+            if(original_node.type == compare_to.type):
+                return True and ExpressionNode.treeEqual(original_node.left_child,compare_to.left_child) and ExpressionNode.treeEqual(original_node.right_child,compare_to.right_child)
+            else:
+                return False
+        if(isinstance(original_node,OperandNode)):
+            if(original_node.type == compare_to.type):
+                if(original_node.type == "var"):
+                    if(original_node.value.name == compare_to.value.name):
+                        return True
+                    else:
+                        return False
+
+                if(original_node.value.value == compare_to.value.value):
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        if(isinstance(original_node,FunctionNode)):
+            if(original_node.value == compare_to.value):
+                return True and ExpressionNode.treeEqual(original_node.child,compare_to.child)
+            else:
+                return False
+
+        
+
+
 
 class ExpressionTree():
+    tree_counter = 0
+    finished_trees = []
     def __init__(self,token_list):
         self.path_and_rules = []
         self.token_list = token_list
         self.root = None
+        self.father_tree_id = 0
+        self.id = 0
 
     # function constants converts  to floats
     def tokenToNode(token : Token) -> ExpressionNode :
@@ -296,31 +331,34 @@ class ExpressionTree():
         if(path_and_rule.path == ""):
             self.root = self.root.applyRule(path_and_rule.rule)
             return
-        
         node_to_expend = self.root
         #loop until the next node is to expend
         i = 0
         while i != len(path_and_rule.path) - 1:
-            if(i == 'l'):
+            if(path_and_rule.path[i] == 'l'):
                 node_to_expend = node_to_expend.left_child
-            elif(i == 'r'):
+            elif(path_and_rule.path[i] == 'r'):
                 node_to_expend = node_to_expend.right_child
-            elif(i == 'd'):
+            elif(path_and_rule.path[i] == 'd'):
                 node_to_expend = node_to_expend.child
             i += 1
 
         #sem to spadne vzdycky (snad)
-        if(len(path_and_rule.path)==1):
-            if(path_and_rule.path == "l"):
+        if(len(path_and_rule.path) - i==1):
+            if(path_and_rule.path[i] == "l"):
                 node_to_expend.left_child = ExpressionNode.applyRule(self.root.left_child,path_and_rule.rule)
-            elif(path_and_rule.path == "r"):
+            elif(path_and_rule.path[i] == "r"):
                 node_to_expend.right_child = ExpressionNode.applyRule(node_to_expend.right_child,path_and_rule.rule)
-            elif(path_and_rule.path == "d"):
+            elif(path_and_rule.path[i] == "d"):
                 node_to_expend.child = ExpressionNode.applyRule(node_to_expend.child,path_and_rule.rule)
             return
             
 
-
+    def isTreeAlreadyDone(self):
+        for i in ExpressionTree.finished_trees:
+            if(ExpressionNode.treeEqual(self.root,i.root)):
+                return True
+        return False
 
 
     #return list of new trees
@@ -329,19 +367,14 @@ class ExpressionTree():
         for i in self.path_and_rules:
             treeCopy = copy.deepcopy(self)
             treeCopy.path_and_rules = []
+            ExpressionTree.tree_counter += 1
+            treeCopy.id = ExpressionTree.tree_counter
+            treeCopy.father_tree_id = self.id
             treeCopy.applyRuleOnTree(i)
             newTrees.append( treeCopy)
+        ExpressionTree.finished_trees.append(self)
         return newTrees
             
-
-
-
-
-
-
-
-
-
 
 
 

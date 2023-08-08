@@ -1,3 +1,3 @@
-def errorExit(str):
-    print(str)
+def errorExit(msg):
+    print(msg)
     exit(1)

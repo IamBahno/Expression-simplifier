@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Math Expression Solver</title>
+    <link rel="stylesheet" type="text/css" href="../static/styles.css">
+</head>
+<body>
+    <h1>Math Expression Solver</h1>
+    <div id="input-container">
+        <div id="expression-line">
+            <span id="numerator"></span>
+            <hr>
+            <span id="denominator"></span>
+        </div>
+        <input type="text" id="input-field" placeholder="Enter a math expression">
+        <button id="solve-button">Solve</button>
+    </div>
+    <div id="result-container"></div>
+
+    <script>
+        const inputField = document.getElementById("input-field");
+        const solveButton = document.getElementById("solve-button");
+        const resultContainer = document.getElementById("result-container");
+        const numeratorSpan = document.getElementById("numerator");
+        const denominatorSpan = document.getElementById("denominator");
+
+        inputField.addEventListener("input", () => {
+            const inputExpression = inputField.value;
+            const parts = inputExpression.split("/");
+
+            if (parts.length === 2) {
+                numeratorSpan.textContent = parts[0];
+                denominatorSpan.textContent = parts[1];
+            } else {
+                numeratorSpan.textContent = "";
+                denominatorSpan.textContent = "";
+            }
+        });
+
+        solveButton.addEventListener("click", () => {
+            const inputExpression = inputField.value;
+
+            // You can add your logic here to process the math expression and display the result and steps.
+            // For now, let's just display the input expression.
+            resultContainer.innerHTML = `<p>Input Expression: ${inputExpression}</p>`;
+        });
+    </script>
+</body>
+</html>

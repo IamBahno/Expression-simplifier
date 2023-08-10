@@ -8,19 +8,26 @@ class Token():
 
 class InputParser():
     leftover_char = None
+    input = None
     def __init__(self):
         pass
     def GetToken():
         state = "start" #start/var/func/int/int_dot/float
         string = ""
         while True:
+
+
             if(InputParser.leftover_char==None):
-                char = sys.stdin.read(1)
+                # char = sys.stdin.read(1)
+                char = InputParser.input[0]
+                InputParser.input = InputParser.input[1:]
             else:
                 char = InputParser.leftover_char
                 InputParser.leftover_char = None
-            
+
             if state == "start":
+                if (char == '\n'):
+                    return Token("eof_token", "")
                 if char in ["^","*","(",")","/","+","-","="]:
                     if(char == "^"):
                         return Token("operator","exp")
@@ -93,6 +100,8 @@ class InputParser():
                 else:
                     InputParser.leftover_char = char
                     return Token("float",float(string))
+            if char == " ":
+                continue
             if char == "":
                 return Token("eof_token","")
             else:

@@ -7,42 +7,48 @@
 <body>
     <h1>Math Expression Solver</h1>
     <div id="input-container">
-        <div id="expression-line">
-            <span id="numerator"></span>
-            <hr>
-            <span id="denominator"></span>
-        </div>
         <input type="text" id="input-field" placeholder="Enter a math expression">
         <button id="solve-button">Solve</button>
     </div>
     <div id="result-container"></div>
 
+<!--    <script>-->
+<!--        const inputField = document.getElementById("input-field");-->
+<!--        const solveButton = document.getElementById("solve-button");-->
+<!--        const resultContainer = document.getElementById("result-container");-->
+
+<!--        solveButton.addEventListener("click", () => {-->
+<!--            const inputExpression = inputField.value;-->
+
+<!--            // You can add your logic here to process the math expression and display the result and steps.-->
+<!--            // For now, let's just display the input expression.-->
+<!--            resultContainer.innerHTML = `<p>Input Expression: ${inputExpression}</p>`;-->
+
+<!--            const expressions = retExpressions(inputExpression)-->
+<!--        });-->
+<!--    </script>-->
     <script>
         const inputField = document.getElementById("input-field");
         const solveButton = document.getElementById("solve-button");
         const resultContainer = document.getElementById("result-container");
-        const numeratorSpan = document.getElementById("numerator");
-        const denominatorSpan = document.getElementById("denominator");
 
-        inputField.addEventListener("input", () => {
+        solveButton.addEventListener("click", async () => {
             const inputExpression = inputField.value;
-            const parts = inputExpression.split("/");
+            // Replace "/" with a different character, such as "|"
+            const sanitizedExpression = inputExpression.replace(/\//g, '|');
+            try {
+                const response = await fetch(`/get_expressions/${sanitizedExpression}`);
+                const expressions = await response.json();
 
-            if (parts.length === 2) {
-                numeratorSpan.textContent = parts[0];
-                denominatorSpan.textContent = parts[1];
-            } else {
-                numeratorSpan.textContent = "";
-                denominatorSpan.textContent = "";
+                // Display the expressions in the result container
+                let expressionsHTML = "";
+                expressions.forEach(expression => {
+                    expressionsHTML += `<p>${expression}</p>`;
+                });
+                resultContainer.innerHTML = expressionsHTML;
+            } catch (error) {
+                console.error('Error fetching expressions:', error);
             }
-        });
-
-        solveButton.addEventListener("click", () => {
-            const inputExpression = inputField.value;
-
-            // You can add your logic here to process the math expression and display the result and steps.
-            // For now, let's just display the input expression.
-            resultContainer.innerHTML = `<p>Input Expression: ${inputExpression}</p>`;
         });
     </script>
 </body>

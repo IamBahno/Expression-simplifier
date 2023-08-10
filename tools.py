@@ -14,4 +14,5 @@ def printToken(token):
 #             print(f"<Operand:{root.type},value:{root.value.name}>")
 #         else:
 #             print(f"<Operand:{root.type},value:{root.value.value}>")
-    
+
+# [Operator:mul,leva_strana:<Operand:int,value:3>,prava_strana:[Operator:plus,leva_strana:[Operator:plus,leva_strana:[Operator:exp,leva_strana:<Operand:var,value:x>,prava_strana:<Operand:int,value:2>],prava_strana:<Operand:int,value:3>],prava_strana:<Operand:int,value:3>]]

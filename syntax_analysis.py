@@ -18,7 +18,8 @@ def printTree(root):
             return f"<Operand:{root.type},value:{root.value.value}>"
     else:
         print("error")
-
+def printToken(token):
+    print(f"Type:{token.type},  Value: {token.value}")
 
 #load tokens
 #check syntax
@@ -28,14 +29,14 @@ class SyntaxAnalysis():
     def __init__(self):
         self.token_list = []
 
-    def loadTokens(self):
+    def loadTokens(self,input):
         token = None
+        InputParser.input = input + '\n'
         token = InputParser.GetToken()
         while(token.type != "eof_token" and token.type != "error_token"):
             # tools.printToken(token)
             self.token_list.append(token)
             token = InputParser.GetToken()
-
         if(token.type == "error_token"):
             errorExit("error token")
 
@@ -165,6 +166,7 @@ class SyntaxAnalysis():
 
         prefixList.reverse()
         self.token_list = prefixList
+
 
 
         
@@ -328,6 +330,7 @@ class ExpressionTree():
 
     # modify given tree
     def applyRuleOnTree(self,path_and_rule):
+        print(path_and_rule.path)
         if(path_and_rule.path == ""):
             self.root = self.root.applyRule(path_and_rule.rule)
             return
@@ -335,9 +338,12 @@ class ExpressionTree():
         #loop until the next node is to expend
         i = 0
         while i != len(path_and_rule.path) - 1:
+            print("counter")
             if(path_and_rule.path[i] == 'l'):
+                print(1)
                 node_to_expend = node_to_expend.left_child
             elif(path_and_rule.path[i] == 'r'):
+                print(2)
                 node_to_expend = node_to_expend.right_child
             elif(path_and_rule.path[i] == 'd'):
                 node_to_expend = node_to_expend.child
@@ -346,7 +352,7 @@ class ExpressionTree():
         #sem to spadne vzdycky (snad)
         if(len(path_and_rule.path) - i==1):
             if(path_and_rule.path[i] == "l"):
-                node_to_expend.left_child = ExpressionNode.applyRule(self.root.left_child,path_and_rule.rule)
+                node_to_expend.left_child = ExpressionNode.applyRule(node_to_expend.left_child,path_and_rule.rule)
             elif(path_and_rule.path[i] == "r"):
                 node_to_expend.right_child = ExpressionNode.applyRule(node_to_expend.right_child,path_and_rule.rule)
             elif(path_and_rule.path[i] == "d"):
@@ -374,8 +380,52 @@ class ExpressionTree():
             newTrees.append( treeCopy)
         ExpressionTree.finished_trees.append(self)
         return newTrees
-            
 
+    def getRidOfBrakcets(str):
+        print(str)
+        without_brackets = False
+        while without_brackets == False:
+            without_brackets = True
+            for i in range(1,len(str)):
+                if(i == len(str)-1):
+                    continue
+                if (str[i-1] == '(' and str[i+1] == ')'):
+                    str = str[:i-1] + str[i] + str[i+2:]
+                    without_brackets = False
+                    break
+        return str
+
+
+
+    #tree to infix
+    def treeToInfix(root : ExpressionNode):
+        if(isinstance(root,OperandNode)):
+            if(root.type == "int" or root.type == "float"):
+                return str(root.value.value)
+            else:
+                return root.value.name
+        if(isinstance(root,OperatorNode)):
+            if(root.type == 'plus'):
+                return f"({ExpressionTree.treeToInfix(root.left_child)}) + ({ExpressionTree.treeToInfix(root.right_child)})"
+            if(root.type == 'minus'):
+                return f"({ExpressionTree.treeToInfix(root.left_child)}) - ({ExpressionTree.treeToInfix(root.right_child)})"
+            if(root.type == 'mul'):
+                return f"({ExpressionTree.treeToInfix(root.left_child)}) * ({ExpressionTree.treeToInfix(root.right_child)})"
+            if(root.type == 'div'):
+                return f"({ExpressionTree.treeToInfix(root.left_child)}) / ({ExpressionTree.treeToInfix(root.right_child)})"
+            if(root.type == 'exp'):
+                return f"({ExpressionTree.treeToInfix(root.left_child)}) ^ ({ExpressionTree.treeToInfix(root.right_child)})"
+            if(root.type == 'equal'):
+                return f"{ExpressionTree.treeToInfix(root.left_child)} = {ExpressionTree.treeToInfix(root.right_child)}"
+        if(isinstance(root,FunctionNode)):
+            return f"{root.type}({ExpressionTree.treeToInfix(root.child)})"
+
+        return ""
+
+    def getFinishedTree(id):
+        for i in ExpressionTree.finished_trees:
+            if i.id == id:
+                return i
 
 
 class OperatorNode(ExpressionNode):
@@ -458,13 +508,63 @@ def checkForBasicOperations(node):
     else:
         return
 
+#find where are you can shift operands
+# a + b + c,
+# a - b - c,
+# a * b * c,
+# a/(b/c),
+#        div_right_shift
+#           /
+#       a      /
+#           b     c
+#
+# (a/b)/c,
+#        div_left_shift
+#
+#           /
+#       /       c
+#   a      b
+#
+# a - b + c,
+#       plus_minus_shift
+#           +
+#       -      c
+#     a    b
+# a + b -c
+#        minus_plus_shift
+#           -
+#       +      c
+#     a    b
+def checkForOperandShift(node):
+    rules = []
+    if isinstance(node, OperatorNode) and isinstance(node.left_child,OperatorNode):
+        if(node.type == "plus" and node.left_child.type == "plus"):
+            rules.append(Rules("plus_shift"))
+        if(node.type == "minus" and node.left_child.type == "minus"):
+            rules.append(Rules("minus_shift"))
+        if(node.type == "mul" and node.left_child.type == "mul"):
+            rules.append(Rules("mul_shift"))
+        if(node.type == "div" and node.left_child.type == "div"):
+            rules.append(Rules("div_left_shift"))
+        if(node.type == "plus" and node.left_child.type == "minus"):
+            rules.append(Rules("plus_minus_shift"))
+        if(node.type == "minus" and node.left_child.type == "plus"):
+            rules.append(Rules("minus_plus_shift"))
+    if isinstance(node, OperatorNode) and isinstance(node.right_child, OperatorNode):
+        if(node.type == "div" and node.right_child.type == "div"):
+            rules.append(Rules("div_right_shift"))
+
+    return rules
+
+
 def generateRules(node:ExpressionNode):
     rules = []
     rule = checkForBasicOperations(node)
-    if(rule == None):
-        return rules
+    if(rule != None):
+        rules.append(rule)
 
-    rules.append(rule)
+    rules.extend(checkForOperandShift(node))
+
     return rules
 
 def applyBasicOperations(node,rule):

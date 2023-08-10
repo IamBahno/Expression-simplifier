@@ -13,7 +13,10 @@ def printTree(root):
 
     elif(isinstance(root,OperandNode)):
         if(root.type == "var"):
-            return f"<Operand:{root.type},value:{root.value.name}>"
+            if(root.value.sign == "minus"):
+                return f"<Operand:{root.type},value:-{root.value.name}>"
+            else:
+                return f"<Operand:{root.type},value:{root.value.name}>"
         else:
             return f"<Operand:{root.type},value:{root.value.value}>"
     else:
@@ -184,6 +187,8 @@ class ExpressionNode():
             node = applyBasicOperations(node,rule)
         elif(rule.type in ["plus_shift","minus_shift","mul_shift","div_left_shift","div_right_shift","plus_minus_shift","minus_plus_shift"]):
             node = applyShiftOperations(node,rule)
+        elif(rule.type == "zero-var"):
+            node = zeroMinusVar(node,rule)
     # return OperandNode(Token("int",5))
         return node
 
@@ -215,6 +220,13 @@ class ExpressionNode():
             else:
                 return False
 
+    def countNode(node):
+        if(isinstance(node,FunctionNode)):
+            return 1 + ExpressionNode.countNode(node.child)
+        elif(isinstance(node,OperatorNode)):
+            return 1 + ExpressionNode.countNode(node.left_child) + ExpressionNode.countNode(node.right_child)
+        else:
+            return 1
         
 
 
@@ -401,12 +413,15 @@ class ExpressionTree():
             if(root.type == "int" or root.type == "float"):
                 return str(root.value.value)
             else:
-                return root.value.name
+                if(root.value.sign == "minus"):
+                    return f"-{root.value.name}"
+                else:
+                    return f"{root.value.name}"
         if(isinstance(root,OperatorNode)):
             if(root.type == 'plus'):
-                return f"({ExpressionTree.treeToInfix(root.left_child)}) + ({ExpressionTree.treeToInfix(root.right_child)})"
+                return f"{ExpressionTree.treeToInfix(root.left_child)} + ({ExpressionTree.treeToInfix(root.right_child)})"
             if(root.type == 'minus'):
-                return f"({ExpressionTree.treeToInfix(root.left_child)}) - ({ExpressionTree.treeToInfix(root.right_child)})"
+                return f"{ExpressionTree.treeToInfix(root.left_child)} - ({ExpressionTree.treeToInfix(root.right_child)})"
             if(root.type == 'mul'):
                 return f"({ExpressionTree.treeToInfix(root.left_child)}) * ({ExpressionTree.treeToInfix(root.right_child)})"
             if(root.type == 'div'):
@@ -464,6 +479,7 @@ class FloatValue():
 class VarValue():
     def __init__(self, operand):
         self.name = operand.value
+        self.sign = "plus"#"minus"
 
 
 
@@ -473,6 +489,7 @@ class Rules():
 
 # returns rules: plus/minus/divide/multiply/exp
 def checkForBasicOperations(node):
+
     #it is operand above 2 operators
     if isinstance(node, OperatorNode) and isinstance(node.left_child, OperandNode)  and isinstance(node.right_child, OperandNode):
         #both sides are variables
@@ -502,6 +519,10 @@ def checkForBasicOperations(node):
                 return Rules("basic_mul")
             if node.type == "exp":
                 return Rules("basic_exp")
+
+        # it is 0-x
+        if(node.left_child.type in ["int","float"] and node.left_child.value.value == 0 and node.type == "minus"):
+            return Rules("zero-var")
 
     else:
         return
@@ -565,22 +586,63 @@ def generateRules(node:ExpressionNode):
 
     return rules
 
+# node * (-1)
+#so far only:     var * (-1)
+def zeroMinusVar(node,rule):
+    new_node = OperandNode(Token("var",node.right_child.value.name))
+    if(node.right_child.value.sign == "plus"):
+        new_node.value.sign = "minus"
+    else:
+        new_node.value.sign = "plus"
+    return new_node
 def applyBasicOperations(node,rule):
     #operations at variables
     new_node = None
     if(isinstance(node.left_child.value,VarValue)):
         if(rule.type == "basic_plus"):
-            new_node = OperatorNode(Token("operator","mul"))
-            new_node.left_child = OperandNode(Token("int",2))
-            new_node.right_child = OperandNode(Token("var",node.left_child.value.name))
+            # x+x = 2*x
+            # (-x)+(-x) = -2*x
+            if(node.left_child.value.sign == node.right_child.value.sign):
+                new_node = OperatorNode(Token("operator","mul"))
+                if(node.left_child.value.sign == "plus"):
+                    new_node.left_child = OperandNode(Token("int",2))
+                else:
+                    new_node.left_child = OperandNode(Token("int",-2))
+                new_node.right_child = OperandNode(Token("var",node.left_child.value.name))
+                new_node.right_child.value.sign = "plus"
+            # x+(-x), (-x)+x = 0
+            else:
+                new_node = OperandNode(Token("int",0))
+
         if(rule.type == "basic_minus"):
-            new_node = OperandNode(Token("int",0))
+            # x - x = (-x)-(-x) = 0
+            if(node.left_child.value.sign == node.right_child.value.sign):
+                new_node = OperandNode(Token("int", 0))
+            # -x - x = -2x
+            # x - (-x) = 2x
+            else:
+                new_node = OperatorNode(Token("operator","mul"))
+                if(node.left_child.value.sign == "plus"):
+                    new_node.left_child = OperandNode(Token("int",2))
+                else:
+                    new_node.left_child = OperandNode(Token("int",-2))
+                new_node.right_child = OperandNode(Token("var",node.left_child.value.name))
+                new_node.right_child.value.sign = "plus"
         if(rule.type == "basic_div"):
-            new_node = OperandNode(Token("int",1))
+            if(node.left_child.value.sign == node.right_child.value.sign):
+                new_node = OperandNode(Token("int",1))
+            else:
+                new_node = OperandNode(Token("int",-1))
         if(rule.type == "basic_mul"):
-            new_node = OperatorNode(Token("operator","exp"))
-            new_node.left_child = OperandNode(Token("var",node.left_child.value.name))
-            new_node.right_child = OperandNode(Token("int",2))
+            new_node = OperatorNode(Token("operator", "exp"))
+            new_node.left_child = OperandNode(Token("var", node.left_child.value.name))
+            # x*x = (-x)*(-x) = x^2
+            if(node.left_child.value.sign == node.right_child.value.sign):
+                new_node.right_child = OperandNode(Token("int",2))
+            # (-x)*(x) = x*(-x) = -x^2
+            else:
+                new_node.right_child = OperandNode(Token("int",-2))
+
 
     #operations on numbers
     else:

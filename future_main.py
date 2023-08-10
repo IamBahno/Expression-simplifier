@@ -12,24 +12,34 @@ def prepareTreeFromInput(input):
 def solveExpression(strom):
     strom.generatePathAndRules(strom.root,"")
     stromy_to_do = []
-    while(strom.path_and_rules != []):
+    best_solution_yet = strom
+    number_of_nodes_yet = ExpressionNode.countNode(best_solution_yet.root)
+
+    while(True):
+        # if(strom.path_and_rules == []):
+        #     if(stromy_to_do != []):
+        #         strom = stromy_to_do.pop(0)
+        #     else:
+        #         break
         stromy_to_do.extend( strom.generateNextGeneration())
         strom = stromy_to_do.pop(0)
-
         while strom.isTreeAlreadyDone():
             if(len(stromy_to_do) == 0):
-                return  strom
+                return best_solution_yet
             strom = stromy_to_do.pop(0)
+        print("lol" +printTree(strom.root))
 
         strom.generatePathAndRules(strom.root,"")
 
-
-        #end if tree cannot be expend, remake to coplex function later
-        if(strom.path_and_rules == []):
+        #end if is best, remake to coplex function later
+        if(ExpressionNode.countNode(strom.root) <= number_of_nodes_yet):
+            best_solution_yet = strom
+            number_of_nodes_yet = ExpressionNode.countNode(strom)
+        if(strom.path_and_rules==[]):
             return strom
 
         
-    return strom
+    return best_solution_yet
 
 # strom = prepareTreeFromInput()
 #
@@ -48,7 +58,6 @@ def doTheThing(input):
 
     strom = solveExpression(strom)
     print(printTree(strom.root))
-
 
     stromy = [strom]
     prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)

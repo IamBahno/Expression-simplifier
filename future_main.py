@@ -15,11 +15,18 @@ def solveExpression(strom):
     while(strom.path_and_rules != []):
         stromy_to_do.extend( strom.generateNextGeneration())
         strom = stromy_to_do.pop(0)
+
         while strom.isTreeAlreadyDone():
             if(len(stromy_to_do) == 0):
                 return  strom
             strom = stromy_to_do.pop(0)
+
         strom.generatePathAndRules(strom.root,"")
+
+
+        #end if tree cannot be expend, remake to coplex function later
+        if(strom.path_and_rules == []):
+            return strom
 
         
     return strom
@@ -44,13 +51,12 @@ def doTheThing(input):
 
 
     stromy = [strom]
-    while True:
-        if (strom.id == 0):
-            break
-        prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)
+    prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)
+    while True and prevTree != None:
         stromy.append(prevTree)
         if (prevTree.id == 0):
             break
+        prevTree = ExpressionTree.getFinishedTree(prevTree.father_tree_id)
 
     stringStromy = []
 
@@ -61,4 +67,5 @@ def doTheThing(input):
 
     stringStromy.reverse()
 
+    print("program successful end")
     return stringStromy

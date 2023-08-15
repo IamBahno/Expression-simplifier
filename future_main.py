@@ -22,6 +22,8 @@ def solveExpression(strom):
         #     else:
         #         break
         stromy_to_do.extend( strom.generateNextGeneration())
+        if(stromy_to_do == []):
+            return  best_solution_yet
         strom = stromy_to_do.pop(0)
         while strom.isTreeAlreadyDone():
             if(len(stromy_to_do) == 0):
@@ -58,7 +60,6 @@ def doTheThing(input):
 
     strom = solveExpression(strom)
     print(printTree(strom.root))
-
     stromy = [strom]
     prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)
     while True and prevTree != None:

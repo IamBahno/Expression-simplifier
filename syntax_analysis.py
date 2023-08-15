@@ -3,7 +3,7 @@ import tools
 from error import errorExit
 from math import pi,e
 import copy
-
+from collections import Counter
 
 def printTree(root):
     if(isinstance(root,FunctionNode)):
@@ -187,8 +187,14 @@ class ExpressionNode():
             node = applyBasicOperations(node,rule)
         elif(rule.type in ["plus_shift","minus_shift","mul_shift","div_left_shift","div_right_shift","plus_minus_shift","minus_plus_shift"]):
             node = applyShiftOperations(node,rule)
+        elif (rule.type in ["node-minus-node", "var-minus-node", "node-minus-var", "node-plus-node",
+                                "var-plus-node", "node-plus-var"]):
+            node = applyXOperations(node, rule)
         elif(rule.type == "zero-var"):
-            node = zeroMinusVar(node,rule)
+            node = zeroMinusVar(node)
+        elif(rule.type.find("div_to_mul") != -1):
+            node = divToMul(node,rule)
+
     # return OperandNode(Token("int",5))
         return node
 
@@ -576,6 +582,144 @@ def checkForOperandShift(node):
     return rules
 
 
+class VarAndCoeficient:
+    def __init__(self):
+        self.legit = True
+        self.vars = []
+        self.number = False
+# a * x * y
+def isXMulSmthing(node,var_and_const):
+    if(isinstance(node,OperatorNode) and node.type == "mul"):
+        if(isinstance(node.left_child,OperandNode) and isinstance(node.left_child,OperandNode)):
+            if(node.left_child.type == "var" and node.right_child == "var"):
+                var_and_const.vars.append(node.left_child.value.name)
+                var_and_const.vars.append(node.right_child.value.name)
+            elif(node.left_child.type == "var" and (node.right_child.type == "int" or node.right_child.type == "float")):
+                var_and_const.vars.append(node.left_child.value.name)
+                var_and_const.number = True
+            elif(node.right_child.type == "var" and (node.left_child.type == "int" or node.left_child.type == "float")):
+                var_and_const.vars.append(node.right_child.value.name)
+                var_and_const.number = True
+            else:
+                var_and_const.number = True
+
+        elif(isinstance(node.left_child,OperandNode) and isinstance(node.right_child,OperatorNode)) or \
+                (isinstance(node.left_child,OperatorNode) and isinstance(node.right_child,OperandNode)):
+            if(isinstance(node.left_child,OperandNode) and isinstance(node.right_child,OperatorNode)):
+                if(node.left_child.type == "var"):
+                    var_and_const.vars.append(node.left_child.value.name)
+                else:
+                    var_and_const.number = True
+                isXMulSmthing(node.right_child,var_and_const)
+            else:
+                if(node.right_child.type == "var"):
+                    var_and_const.vars.append(node.right_child.value.name)
+                else:
+                    var_and_const.number = True
+                isXMulSmthing(node.left_child,var_and_const)
+        else:
+            var_and_const.legit = False
+    else:
+        var_and_const.legit = False
+
+# a*x + x
+def checkForXOperations(node):
+    operation = ""
+    if(isinstance(node,OperatorNode) and (node.type == "plus" or node.type == "minus")):
+        if(node.type == "plus"):
+            operation = "plus"
+        else:
+            operation = "minus"
+    else:
+        return []
+    left = VarAndCoeficient()
+    right = VarAndCoeficient()
+
+    if(isinstance(node.left_child,OperandNode) and node.left_child.type == "var"):
+        left.vars.append(node.left_child.value.name)
+    if(isinstance(node.right_child,OperandNode) and node.right_child.type == "var"):
+        right.vars.append(node.right_child.value.name)
+    # x o x
+    if(left.vars != [] and right.vars != []):
+        return []
+    if(left.vars == [] and right.vars == []):
+        isXMulSmthing(node.left_child,left)
+        isXMulSmthing(node.right_child,right)
+        if(left.legit == False or right.legit == False):
+            return []
+        if(Counter(left.vars) == Counter(right.vars)):
+            if operation == "minus":
+                return [Rules("node-minus-node")]
+            else:
+                return [Rules("node-plus-node")]
+
+        else:
+            return []
+
+    elif(left.vars == [] and right.vars != []):
+        isXMulSmthing(node.left_child,left)
+        if(left.legit == True):
+            if len(left.vars) != 1:
+                return []
+            if left.vars[0] != node.right_child.value.name:
+                return []
+            else:
+                if operation == "minus":
+                    #node meaning a*x or y*x
+                    return [Rules("node-minus-var")]
+                else:
+                    return [Rules("node-plus-var")]
+
+        else:
+            return []
+    else:
+        isXMulSmthing(node.right_child,right)
+        if(right.legit == True and right.number == True):
+            if len(right.vars) != 1:
+                return []
+            if right.vars[0] != node.left_child.value.name:
+                return []
+            else:
+                if operation == "minus":
+                    return [Rules("var-minus-node")]
+                else:
+                    return [Rules("var-plus-node")]
+        else:
+            return []
+
+    return []
+
+def checkForDivToMul(node):
+    if(isinstance(node,OperatorNode) and node.type == "div"):
+        if(isinstance(node.left_child,OperandNode) and (node.left_child.type == "int" or node.left_child.type == "float") and node.left_child.value.value == 1):
+            return []
+        converPerPartes = True
+        tmp = node.left_child
+        while isinstance(tmp,OperatorNode):
+            if(isinstance(tmp,OperatorNode) and tmp.type != "mul"):
+                converPerPartes = False
+                break
+            tmp = tmp.left_child
+
+        if(converPerPartes == False):
+            return [Rules("div_to_mul_whole_top")]
+        else:
+            ret = [Rules("div_to_mul_whole_top")]
+            ret_str = "div_to_mul"
+            operand_count = 1
+            tmp = node.left_child
+            while isinstance(tmp, OperatorNode):
+                ret_str = ret_str + str(operand_count)
+                operand_count += 1
+                ret.append(Rules(ret_str))
+                tmp = tmp.left_child
+            return ret
+
+
+    return []
+
+
+
 def generateRules(node:ExpressionNode):
     rules = []
     rule = checkForBasicOperations(node)
@@ -583,12 +727,35 @@ def generateRules(node:ExpressionNode):
         rules.append(rule)
 
     rules.extend(checkForOperandShift(node))
+    rules.extend(checkForXOperations(node))
+    rules.extend(checkForDivToMul(node))
 
     return rules
 
 # node * (-1)
-#so far only:     var * (-1)
-def zeroMinusVar(node,rule):
+def minusExpresions(node):
+    if(isinstance(node,OperandNode)):
+        if node.type == "var":
+            tmp = OperatorNode(Token("operator","minus"))
+            tmp.right_child = node
+            node = zeroMinusVar(tmp)
+        elif node.type == "float" or node.type == "int":
+            node.value.value = node.value.value * (-1)
+    elif(isinstance(node,FunctionNode)):
+        new_node = OperatorNode(Token("operator","minus"))
+        new_node.left_child = OperandNode(Token("int",0))
+        new_node.right_child = node
+        node = new_node
+    #expression
+    else:
+        new_node = OperatorNode(Token("operator","mul"))
+        new_node.left_child = OperandNode(Token("int",-1))
+        new_node.right_child = node
+        node = new_node
+    return node
+
+#0 - x
+def zeroMinusVar(node):
     new_node = OperandNode(Token("var",node.right_child.value.name))
     if(node.right_child.value.sign == "plus"):
         new_node.value.sign = "minus"
@@ -687,9 +854,14 @@ def applyShiftOperations(node,rule):
             new_node.type = "plus"
         new_node.left_child.type = "plus"
         tmp_node = node.left_child.left_child
-        new_node.left_child.left_child = OperatorNode(Token("operator","minus"))
-        new_node.left_child.left_child.left_child = OperandNode(Token("int",0))
-        new_node.left_child.left_child.right_child = node.right_child
+
+        #legacy
+        # new_node.left_child.left_child = OperatorNode(Token("operator","minus"))
+        # new_node.left_child.left_child.left_child = OperandNode(Token("int",0))
+        # new_node.left_child.left_child.right_child = node.right_child
+
+        new_node.left_child.left_child = minusExpresions(node.right_child)
+
         new_node.left_child.right_child,tmp_node = tmp_node, new_node.left_child.right_child
         new_node.right_child = tmp_node
     elif(rule.type == "div_left_shift"):
@@ -707,3 +879,172 @@ def applyShiftOperations(node,rule):
 
 
     return new_node
+
+
+def divToMul(node,rule):
+    if rule.type == "div_to_mul_whole_top":
+        new_node = OperatorNode(Token("operator","mul"))
+        new_node.right_child = node.left_child
+        new_node_left = OperatorNode(Token("operator","div"))
+        new_node.left_child = new_node_left
+        new_node_left.left_child = OperandNode(Token("int",1))
+        new_node_left.right_child = node.right_child
+        return new_node
+    else:
+        guide_string = rule.type[len("div_to_mul"):]
+        node_list = []
+        tmp = node.left_child
+        while isinstance(tmp,OperatorNode):
+            node_list.append(tmp.right_child)
+            tmp = tmp.left_child
+        node_list.append(tmp)
+        node_list.reverse()
+
+        new_node = OperatorNode(Token("operator","mul"))
+        #prava strana
+        if(len(guide_string) == 1):
+            new_node.right_child = node_list[0]
+        elif len(guide_string) == 2:
+            new_node.right_child = OperatorNode(Token("operator","mul"))
+            new_node.right_child.left_child = node_list[0]
+            new_node.right_child.right_child = node_list[1]
+        else:
+            new_node.right_child = OperatorNode(Token("operator","mul"))
+            new_node.right_child.right_child = node_list[0]
+
+            tmp = new_node.right_child # ukazuje na mul
+            for i in node_list[1:len(guide_string)-1]:
+                tmp.left_child = OperatorNode(Token("operator","mul"))
+                tmp .left_child.right_child = i
+                tmp = tmp.left_child
+            tmp.left_child = node_list[len(guide_string)-1]
+
+        new_node.left_child = OperatorNode(Token("operator","div"))
+        new_node.left_child.right_child = node.right_child
+
+
+        if(len(node_list) - len(guide_string)) == 1:
+            new_node.left_child.left_child = node_list[len(node_list) - 1]
+        elif(len(node_list) - len(guide_string)) == 2:
+            new_node.left_child.left_child = OperatorNode(Token("operator","mul"))
+            new_node.left_child.left_child.left_child = node_list[len(node_list) - 2]
+            new_node.left_child.left_child.right_child = node_list[len(node_list) - 1]
+        else:
+            new_node.left_child.left_child = OperatorNode(Token("operator","mul"))
+            new_node.left_child.left_child.right_child = node_list[len(guide_string)]
+            tmp = new_node.left_child.left_child
+            for i in node_list[len(guide_string)+1:]:
+                tmp.left_child = OperatorNode(Token("operator","mul"))
+                tmp.left_child.right_child = i
+                tmp = tmp.left_child
+            tmp.left_child = node_list[len(node_list)-1]
+        return new_node
+
+
+
+
+
+
+
+class HoldValue():
+    def __init__(self,value):
+        self.value = value
+
+    def mulValTogether(self,node):
+        if isinstance(node,OperatorNode):
+            if(isinstance(node.left_child,OperandNode) and (node.left_child.type == "int" or node.left_child.type == "float")):
+                self.value = self.value * node.left_child.value.value
+            if(isinstance(node.right_child,OperandNode) and (node.right_child.type == "int" or node.right_child.type == "float")):
+                self.value = self.value * node.right_child.value.value
+            if(isinstance(node.left_child,OperandNode) and node.left_child.type == "var" and node.left_child.value.sign == "minus"):
+                self.value = self.value * (-1)
+            if (isinstance(node.right_child,OperandNode) and node.right_child.type == "var" and node.right_child.value.sign == "minus"):
+                self.value = self.value * (-1)
+            if(isinstance(node.left_child,OperatorNode)):
+                self.mulValTogether(node.left_child)
+            if(isinstance(node.right_child,OperatorNode)):
+                self.mulValTogether(node.right_child)
+
+def getVarNames(node):
+    if(isinstance(node,OperatorNode)):
+        return getVarNames(node.left_child) + getVarNames(node.right_child)
+    if(isinstance(node,OperandNode)):
+        if node.type == "int" or node.type == "float":
+            return ""
+        return node.value.name
+    return ""
+def applyXOperations(node,rule):
+    operation = ""
+    left_val = 0
+    right_val = 0
+    if(rule.type.find("minus") != -1):
+        operation = "minus"
+    else:
+        operation = "plus"
+    if(rule.type[:3] == "var"):
+        if(node.left_child.value.sign == "minus"):
+            left_val = -1
+        else:
+            left_val = 1
+
+    else:
+        val = HoldValue(1)
+        val.mulValTogether(node.left_child)
+        left_val = val.value
+
+    tmp = rule.type[rule.type.index('-')+1:]
+    tmp = tmp[tmp.index('-')+1:]
+
+    if(rule.type[:3] == "var"):
+        if(node.right_child.value.sign == "minus"):
+            right_val = -1
+        else:
+            right_val = 1
+    else:
+        val = HoldValue(1)
+        val.mulValTogether(node.right_child)
+        right_val = val.value
+
+
+
+    final_val = 0
+    if(operation == "plus"):
+        final_val = left_val + right_val
+    else:
+        final_val = left_val - right_val
+
+    names = getVarNames(node.left_child)
+
+    if(final_val == 0):
+        return OperandNode(Token("int",0))
+
+    new_node = OperatorNode(Token("operator","mul"))
+    if(len(names) == 1):
+        new_node.left_child = OperandNode(Token("var",names[0]))
+        if(isinstance(final_val,int)):
+            new_node.right_child = OperandNode(Token("int",final_val))
+        else:
+            new_node.right_child = OperandNode(Token("float",final_val))
+        return new_node
+
+    tmp = new_node
+    #there is more than one var
+
+    for i in names[1:]:
+        tmp.left_child = OperatorNode(Token("operator","mul"))
+        tmp = tmp.left_child
+    tmp = new_node
+    while True:
+        if(len(names) == 1):
+            tmp.right_child = OperandNode(Token("var", names[0]))
+            if (isinstance(final_val, int)):
+                tmp.left_child = OperandNode(Token("int", final_val))
+            else:
+                tmp.left_child = OperandNode(Token("float", final_val))
+            break
+        tmp.right_child = OperandNode(Token("var",names[0]))
+        names = names[1:]
+        tmp = tmp.left_child
+    return new_node
+
+

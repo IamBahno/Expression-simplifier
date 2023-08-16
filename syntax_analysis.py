@@ -183,6 +183,8 @@ class ExpressionNode():
     def __init__(self):
         pass
     def applyRule(node,rule):
+        print("pravidlo:"+ rule.type)
+        print("pred:" + printTree(node))
         if (rule.type in ["basic_plus","basic_minus","basic_div","basic_mul","basic_exp"]):
             node = applyBasicOperations(node,rule)
         elif(rule.type in ["plus_shift","minus_shift","mul_shift","div_left_shift","div_right_shift","plus_minus_shift","minus_plus_shift"]):
@@ -194,8 +196,10 @@ class ExpressionNode():
             node = zeroMinusVar(node)
         elif(rule.type.find("div_to_mul") != -1):
             node = divToMul(node,rule)
-
+        elif(rule.type in ["brack_mul_right","brack_mul_left","brack_div_right","brack_div_left"]):
+            node = mulDivBracket(node,rule)
     # return OperandNode(Token("int",5))
+        print("po:" + printTree(node))
         return node
 
     def treeEqual(original_node,compare_to):
@@ -582,6 +586,16 @@ def checkForOperandShift(node):
     return rules
 
 
+def checkForBrackMulDiv(node):
+    rules = []
+    if isinstance(node,OperatorNode) and (node.type == "mul" or node.type == "div"):
+        if isinstance(node.left_child,OperatorNode) or isinstance(node.right_child,OperatorNode):
+            if node.type == "mul":
+                return [Rules("brack_mul_right"),Rules("brack_mul_left")]
+            else:
+                return [Rules("brack_div_right")]
+    return []
+
 class VarAndCoeficient:
     def __init__(self):
         self.legit = True
@@ -729,6 +743,7 @@ def generateRules(node:ExpressionNode):
     rules.extend(checkForOperandShift(node))
     rules.extend(checkForXOperations(node))
     rules.extend(checkForDivToMul(node))
+    rules.extend(checkForBrackMulDiv(node))
 
     return rules
 
@@ -995,7 +1010,7 @@ def applyXOperations(node,rule):
     tmp = rule.type[rule.type.index('-')+1:]
     tmp = tmp[tmp.index('-')+1:]
 
-    if(rule.type[:3] == "var"):
+    if(tmp[:3] == "var"):
         if(node.right_child.value.sign == "minus"):
             right_val = -1
         else:
@@ -1047,4 +1062,50 @@ def applyXOperations(node,rule):
         tmp = tmp.left_child
     return new_node
 
+def mulDivBracket(node,rule):
+    #a * (b + c) = a*b+a*c
+    if rule.type == "brack_mul_right" or rule.type == "brack_div_right":
+        multiplier = node.left_child
+        tmp = node.right_child
+    else:
+        multiplier = node.right_child
+        tmp = node.left_child
 
+    # the node iam about to multiply is operator or function or things mul together (one "value" basically)
+    if( isinstance(tmp,OperatorNode) == False or (isinstance(tmp,OperatorNode) and tmp.type != "plus" and tmp.type != "minus")):
+        if(rule.type in ["brack_mul_right","brack_mul_left"]):
+            new_node = OperatorNode(Token("operator","mul"))
+        else:
+            new_node = OperatorNode(Token("operator","div"))
+        if(rule.type in ["brack_mul_right","brack_div_right"]):
+            node.right_child = new_node
+        else:
+            node.left_child = new_node
+        new_node.right_child = multiplier
+        new_node.left_child = tmp
+        return new_node
+
+    new_node=tmp
+
+    while isinstance(tmp.left_child,OperatorNode) and (tmp.left_child.type == "plus" or tmp.left_child.type == "minus"):
+        tmp_right = tmp.right_child
+        if(rule.type in ["brack_mul_right","brack_mul_left"]):
+            tmp.right_child = OperatorNode(Token("operator","mul"))
+        else:
+            tmp.right_child = OperatorNode(Token("operator","div"))
+        tmp.right_child.right_child = multiplier
+        tmp.right_child.left_child = tmp_right
+        tmp = tmp.left_child
+    tmp_left = tmp.left_child
+    tmp_right = tmp.right_child
+    if (rule.type in ["brack_mul_right", "brack_mul_left"]):
+        tmp.left_child = OperatorNode(Token("operator","mul"))
+        tmp.right_child = OperatorNode(Token("operator","mul"))
+    else:
+        tmp.left_child = OperatorNode(Token("operator", "div"))
+        tmp.right_child = OperatorNode(Token("operator", "div"))
+    tmp.right_child.right_child = multiplier
+    tmp.left_child.right_child = multiplier
+    tmp.right_child.left_child = tmp_right
+    tmp.left_child.left_child = tmp_left
+    return new_node

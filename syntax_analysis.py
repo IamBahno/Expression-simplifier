@@ -78,6 +78,16 @@ class SyntaxAnalysis():
         if token.value in ["left_brack","right_brack"]:
             return 5
 
+    def checkForMinus(self):
+        for i in range(len(self.token_list)):
+            if self.token_list[i].type == "operator" and self.token_list[i].value == "minus":
+                #vlevo je '('
+                if(i == 0):
+                    self.token_list = [Token("int",0)] + self.token_list
+                    continue
+                if(self.token_list[i-1].value == "left_brack"):
+                    self.token_list.insert(1,Token("int",0))
+
 
 
     def infixToPrefix(self):
@@ -183,8 +193,7 @@ class ExpressionNode():
     def __init__(self):
         pass
     def applyRule(node,rule):
-        print("pravidlo:"+ rule.type)
-        print("pred:" + printTree(node))
+        # print("pred:" + printTree(node))
         if (rule.type in ["basic_plus","basic_minus","basic_div","basic_mul","basic_exp"]):
             node = applyBasicOperations(node,rule)
         elif(rule.type in ["plus_shift","minus_shift","mul_shift","div_left_shift","div_right_shift","plus_minus_shift","minus_plus_shift"]):
@@ -199,7 +208,7 @@ class ExpressionNode():
         elif(rule.type in ["brack_mul_right","brack_mul_left","brack_div_right","brack_div_left"]):
             node = mulDivBracket(node,rule)
     # return OperandNode(Token("int",5))
-        print("po:" + printTree(node))
+    #     print("po:" + printTree(node))
         return node
 
     def treeEqual(original_node,compare_to):
@@ -367,7 +376,6 @@ class ExpressionTree():
             elif(path_and_rule.path[i] == 'd'):
                 node_to_expend = node_to_expend.child
             i += 1
-
         #sem to spadne vzdycky (snad)
         if(len(path_and_rule.path) - i==1):
             if(path_and_rule.path[i] == "l"):
@@ -391,6 +399,7 @@ class ExpressionTree():
         # print(self.id,self.father_tree_id)
         # print(printTree(self.root))
         newTrees = []
+        # print("puvodni strom:"+ printTree(self.root))
         for i in self.path_and_rules:
             treeCopy = copy.deepcopy(self)
             treeCopy.path_and_rules = []
@@ -398,6 +407,9 @@ class ExpressionTree():
             treeCopy.id = ExpressionTree.tree_counter
             treeCopy.father_tree_id = self.id
             treeCopy.applyRuleOnTree(i)
+
+            # print(i.rule.type +"      " +i.path)
+            # print("synek:" + printTree(treeCopy.root))
             newTrees.append( treeCopy)
         ExpressionTree.finished_trees.append(self)
         return newTrees
@@ -591,7 +603,8 @@ def checkForBrackMulDiv(node):
     if isinstance(node,OperatorNode) and (node.type == "mul" or node.type == "div"):
         if isinstance(node.left_child,OperatorNode) or isinstance(node.right_child,OperatorNode):
             if node.type == "mul":
-                return [Rules("brack_mul_right"),Rules("brack_mul_left")]
+                # return [Rules("brack_mul_right"),Rules("brack_mul_left")]
+                return [Rules("brack_mul_right")]
             else:
                 return [Rules("brack_div_right")]
     return []
@@ -662,6 +675,8 @@ def checkForXOperations(node):
         if(left.legit == False or right.legit == False):
             return []
         if(Counter(left.vars) == Counter(right.vars)):
+            if(left.vars) == []:
+                return []
             if operation == "minus":
                 return [Rules("node-minus-node")]
             else:
@@ -1063,6 +1078,8 @@ def applyXOperations(node,rule):
     return new_node
 
 def mulDivBracket(node,rule):
+    # print("pred:"+printTree(node))
+
     #a * (b + c) = a*b+a*c
     if rule.type == "brack_mul_right" or rule.type == "brack_div_right":
         multiplier = node.left_child
@@ -1093,7 +1110,7 @@ def mulDivBracket(node,rule):
             tmp.right_child = OperatorNode(Token("operator","mul"))
         else:
             tmp.right_child = OperatorNode(Token("operator","div"))
-        tmp.right_child.right_child = multiplier
+        tmp.right_child.right_child = copy.deepcopy(multiplier)
         tmp.right_child.left_child = tmp_right
         tmp = tmp.left_child
     tmp_left = tmp.left_child
@@ -1104,8 +1121,9 @@ def mulDivBracket(node,rule):
     else:
         tmp.left_child = OperatorNode(Token("operator", "div"))
         tmp.right_child = OperatorNode(Token("operator", "div"))
-    tmp.right_child.right_child = multiplier
-    tmp.left_child.right_child = multiplier
+    tmp.right_child.right_child = copy.deepcopy(multiplier)
+    tmp.left_child.right_child = copy.deepcopy(multiplier)
     tmp.right_child.left_child = tmp_right
     tmp.left_child.left_child = tmp_left
+    # print("po:"+printTree(new_node))
     return new_node

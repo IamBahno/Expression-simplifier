@@ -4,6 +4,7 @@ def prepareTreeFromInput(input):
     analyser = SyntaxAnalysis()
     analyser.loadTokens(input)
     analyser.checkSyntax()
+    analyser.checkForMinus()
     analyser.infixToPrefix()
     strom = ExpressionTree(analyser.token_list)
     strom.root = strom.constructTree()

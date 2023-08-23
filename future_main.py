@@ -37,7 +37,7 @@ def solveExpression(strom):
         #end if is best, remake to coplex function later
         if(ExpressionNode.countNode(strom.root) <= number_of_nodes_yet):
             best_solution_yet = strom
-            number_of_nodes_yet = ExpressionNode.countNode(strom)
+            number_of_nodes_yet = ExpressionNode.countNode(strom.root)
         if(strom.path_and_rules==[]):
             return strom
 

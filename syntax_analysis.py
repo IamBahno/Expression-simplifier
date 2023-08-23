@@ -79,14 +79,18 @@ class SyntaxAnalysis():
             return 5
 
     def checkForMinus(self):
+        for i in self.token_list:
+            printToken(i)
         for i in range(len(self.token_list)):
             if self.token_list[i].type == "operator" and self.token_list[i].value == "minus":
                 #vlevo je '('
                 if(i == 0):
                     self.token_list = [Token("int",0)] + self.token_list
                     continue
-                if(self.token_list[i-1].value == "left_brack"):
-                    self.token_list.insert(1,Token("int",0))
+                if(self.token_list[i-1].type == "operator" and self.token_list[i-1].value == "left_brack"):
+                    self.token_list.insert(i,Token("int",0))
+        for i in self.token_list:
+            printToken(i)
 
 
 
@@ -203,12 +207,18 @@ class ExpressionNode():
             node = applyXOperations(node, rule)
         elif(rule.type == "zero-var"):
             node = zeroMinusVar(node)
+        elif(rule.type in ["minus-one-mul-var","var-mul-minus-one"]):
+            node = minusOneMulVar(node,rule)
         elif(rule.type.find("div_to_mul") != -1):
             node = divToMul(node,rule)
         elif(rule.type in ["brack_mul_right","brack_mul_left","brack_div_right","brack_div_left"]):
             node = mulDivBracket(node,rule)
         elif(rule.type in ["exponent_mul","exponent_div","same_nodes_mul","same_nodes_div","exponent_left_mul","exponent_left_div","exponent_right_mul","exponent_right_div"]):
             node = exponentMulDiv(node,rule)
+        elif(rule.type in ["CommutativeAddition","CommutativeMultiplication"]):
+            node = commutativeProperty(node)
+        elif(rule.type == "node-minus-bracket"):
+            node = nodeMinusBracket(node)
     # return OperandNode(Token("int",5))
     #     print("po:" + printTree(node))
         return node
@@ -409,7 +419,6 @@ class ExpressionTree():
             treeCopy.id = ExpressionTree.tree_counter
             treeCopy.father_tree_id = self.id
             treeCopy.applyRuleOnTree(i)
-
             # print(i.rule.type +"      " +i.path)
             # print("synek:" + printTree(treeCopy.root))
             newTrees.append( treeCopy)
@@ -547,7 +556,11 @@ def checkForBasicOperations(node):
         # it is 0-x
         if(node.left_child.type in ["int","float"] and node.left_child.value.value == 0 and node.type == "minus"):
             return Rules("zero-var")
-
+        if node.type == "mul":
+            if node.left_child.type in ["int","float"] and node.left_child.value.value == -1 and node.right_child.type == "var":
+                return Rules("minus-one-mul-var")
+            if node.right_child.type in ["int","float"] and node.right_child.value.value == -1 and node.left_child.type == "var":
+                return Rules("var-mul-minus-one")
     else:
         return
 
@@ -721,6 +734,30 @@ def checkForXOperations(node):
     return []
 
 
+# a*(b*c/3) mul before parentheses and mul and div inside
+#a+(b+c-d) plus before parantheses and plus and minus inside
+def checkForCommutativeProperty(node):
+    if(isinstance(node,OperatorNode)):
+        if node.type == "plus":
+            if isinstance(node.right_child,OperatorNode) and (node.right_child.type == "plus" or node.right_child.type == "minus"):
+                tmp = node.right_child.left_child
+                while isinstance(tmp,OperatorNode):
+                    if(tmp.type not in ["plus","minus"]):
+                        return []
+                    tmp = tmp.left_child
+                return [Rules("CommutativeAddition")]
+        elif node.type == "mul":
+            if isinstance(node.right_child,OperatorNode) and (node.right_child.type == "mul" or node.right_child.type == "div"):
+                tmp = node.right_child.left_child
+                while isinstance(tmp,OperatorNode):
+                    if(tmp.type not in ["mul","div"]):
+                        return []
+                    tmp = tmp.left_child
+                return [Rules("CommutativeMultiplication")]
+        else:
+            return []
+    return []
+
 def checkForExponentMulDiv(node):
     if(isinstance(node,OperatorNode) == False):
         return []
@@ -780,7 +817,11 @@ def checkForDivToMul(node):
 
     return []
 
-
+def checkForMinusParentheses(node):
+    if isinstance(node,OperatorNode) and node.type == "minus":
+        if isinstance(node.right_child,OperatorNode) and (node.right_child.type == "minus" or node.right_child.type == "plus"):
+            return [Rules("node-minus-bracket")]
+    return []
 
 def generateRules(node:ExpressionNode):
     rules = []
@@ -793,6 +834,8 @@ def generateRules(node:ExpressionNode):
     rules.extend(checkForDivToMul(node))
     rules.extend(checkForBrackMulDiv(node))
     rules.extend(checkForExponentMulDiv(node))
+    rules.extend(checkForCommutativeProperty(node))
+    rules.extend(checkForMinusParentheses(node))
 
     return rules
 
@@ -1039,9 +1082,27 @@ def divToMul(node,rule):
             tmp.left_child = node_list[len(node_list)-1]
         return new_node
 
+# a - (b+c) = a + (-1)*(b+c)
+def nodeMinusBracket(node):
+    new_node = OperatorNode(Token("operator","plus"))
+    new_node.left_child = node.left_child
+    new_node.right_child = OperatorNode(Token("operator","mul"))
+    new_node.right_child.left_child = OperandNode(Token("int",-1))
+    new_node.right_child.right_child = node.right_child
+    return new_node
 
-
-
+# "minus-one-mul-var","var-mul-minus-one"
+def minusOneMulVar(node,rule):
+    tmp = None
+    if rule.type == "minus-one-mul-var":
+        tmp = node.right_child
+    else:
+        tmp = node.left_child
+    if tmp.value.sign == "plus":
+        tmp.value.sign = "minus"
+    else:
+        tmp.value.sign = "plus"
+    return tmp
 
 
 
@@ -1144,6 +1205,22 @@ def applyXOperations(node,rule):
         tmp.right_child = OperandNode(Token("var",names[0]))
         names = names[1:]
         tmp = tmp.left_child
+    return new_node
+
+def commutativeProperty(node):
+    # new_node = node.right_child
+    new_node = copy.deepcopy(node.right_child)
+    if isinstance(new_node.left_child,OperatorNode) == False:
+        tmp = new_node.left_child
+        new_node.left_child = node
+        new_node.left_child.right_child = tmp
+        return new_node
+    tmp = new_node
+    while isinstance(tmp.left_child,OperatorNode):
+        tmp = tmp.left_child
+    tmp_node = tmp.left_child
+    tmp.left_child = node
+    tmp.left_child.right_child = tmp_node
     return new_node
 
 def mulDivBracket(node,rule):

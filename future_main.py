@@ -30,7 +30,7 @@ def solveExpression(strom):
             if(len(stromy_to_do) == 0):
                 return best_solution_yet
             strom = stromy_to_do.pop(0)
-        print("lol" +printTree(strom.root))
+        # print("lol" +printTree(strom.root))
 
         strom.generatePathAndRules(strom.root,"")
 

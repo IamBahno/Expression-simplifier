@@ -209,8 +209,8 @@ class ExpressionNode():
             node = divToMul(node,rule)
         elif(rule.type in ["brack_mul_right","brack_mul_left","brack_div_right","brack_div_left"]):
             node = mulDivBracket(node,rule)
-        # elif(rule.type in ["exponent_mul","exponent_div","same_nodes_mul","same_nodes_div","exponent_left_mul","exponent_left_div","exponent_right_mul","exponent_right_div"]):
-        #     node = exponentMulDiv(node,rule)
+        elif(rule.type in ["exponent_mul","exponent_div","same_nodes_mul","same_nodes_div","exponent_left_mul","exponent_left_div","exponent_right_mul","exponent_right_div"]):
+            node = exponentMulDiv(node,rule)
         elif(rule.type in ["CommutativeAddition","CommutativeMultiplication"]):
             node = commutativeProperty(node)
         elif(rule.type == "node-minus-bracket"):
@@ -220,6 +220,8 @@ class ExpressionNode():
             node= oneZeroNodeOperations(node,rule)
         elif(rule.type == "exp-of-exp-node"):
             node = expOfExpNode(node)
+        elif(rule.type in ["exp-of-mult-or-div","exp-by-multiplication"]):
+            node = expOfNode(node,rule)
     # return OperandNode(Token("int",5))
     #     print(rule.type)
     #     print("po:" + printTree(node))
@@ -638,6 +640,21 @@ def checkForExpOfExpNode(node):
         if isinstance(node.left_child,OperatorNode) and node.left_child.type == "exp":
             return [Rules("exp-of-exp-node")]
     return []
+
+# (x*y)^a
+# (x+y)^a , a has to be positive int in this case
+def checkExpOfNode(node):
+    if isinstance(node,OperatorNode) and node.type == "exp":
+        if isinstance(node.left_child,OperatorNode) and (node.left_child.type == "mul" or node.left_child.type == "div"):
+            return [Rules("exp-of-mult-or-div")]
+        else:
+            if isinstance(node.right_child,OperandNode):
+                if node.right_child.type == "int" or (node.right_child.type == "float" and node.right_child.value.value.is_integer()):
+                    if node.right_child.value.value >= 1:
+                        return [Rules("exp-by-multiplication")]
+    return []
+
+
 class VarAndCoeficient:
     def __init__(self):
         self.legit = True
@@ -912,6 +929,7 @@ def generateRules(node:ExpressionNode):
     rules.extend(checkForMinusParentheses(node))
     rules.extend(checkForOneAndZeroOperations(node))
     rules.extend(checkForExpOfExpNode(node))
+    rules.extend(checkExpOfNode(node))
 
     return rules
 
@@ -1405,3 +1423,61 @@ def expOfExpNode(node):
     new_node.right_child.left_child = node.left_child.right_child
     new_node.right_child.right_child = node.right_child
     return new_node
+
+# elif (rule.type in ["exp-of-mult-or-div", "exp-by-multiplication"]):
+
+
+def expOfNode(node,rule):
+    # (a*b)^x or (a/b)^x
+    # == a^x*b^x
+    if rule.type == "exp-of-mult-or-div":
+        #(a * b) ^ x
+        if node.left_child.type == "mul":
+            new_node = node.left_child
+            tmp = new_node
+            while isinstance(tmp.left_child,OperatorNode) and tmp.left_child.type== "mul":
+                tmp_right =tmp.right_child
+                tmp.right_child = OperatorNode(Token("operator","exp"))
+                tmp.right_child.left_child = tmp_right
+                tmp.right_child.right_child = copy.deepcopy(node.right_child)
+                tmp = tmp.left_child
+            #right side of last node
+            tmp_right = tmp.right_child
+            tmp.right_child = OperatorNode(Token("operator", "exp"))
+            tmp.right_child.left_child = tmp_right
+            tmp.right_child.right_child = copy.deepcopy(node.right_child)
+            #left side of last ndoe
+            tmp_left = tmp.left_child
+            tmp.left_child = OperatorNode(Token("operator", "exp"))
+            tmp.left_child.left_child = tmp_left
+            tmp.left_child.right_child = copy.deepcopy(node.right_child)
+            return new_node
+
+
+        # (a / b) ^ x == a^2/b^2
+        else:
+            new_node = OperatorNode(Token("operator","div"))
+            new_node.left_child = OperatorNode(Token("operator","exp"))
+            new_node.right_child = OperatorNode(Token("operator", "exp"))
+            new_node.left_child.left_child = node.left_child.left_child
+            new_node.left_child.right_child = copy.deepcopy(node.right_child)
+            new_node.right_child.left_child = node.left_child.right_child
+            new_node.right_child.right_child = copy.deepcopy(node.right_child)
+            return new_node
+
+    #(a+b)^x ,(func)^2 ...
+    #(a+b)*(a+b)*(a+b)...x-times
+    #exponent is integer
+    # exponent by multiplication
+    else:
+        new_node = OperatorNode(Token("operator","mul"))
+        tmp = new_node
+        for i in range(int(node.right_child.value.value)-2):
+            tmp.right_child= copy.deepcopy(node.left_child)
+            tmp.left_child = OperatorNode(Token("operator","mul"))
+            tmp = tmp.left_child
+        tmp.right_child = copy.deepcopy(node.left_child)
+        tmp.left_child = copy.deepcopy(node.left_child)
+        return new_node
+
+    return node

@@ -209,8 +209,8 @@ class ExpressionNode():
             node = divToMul(node,rule)
         elif(rule.type in ["brack_mul_right","brack_mul_left","brack_div_right","brack_div_left"]):
             node = mulDivBracket(node,rule)
-        elif(rule.type in ["exponent_mul","exponent_div","same_nodes_mul","same_nodes_div","exponent_left_mul","exponent_left_div","exponent_right_mul","exponent_right_div"]):
-            node = exponentMulDiv(node,rule)
+        # elif(rule.type in ["exponent_mul","exponent_div","same_nodes_mul","same_nodes_div","exponent_left_mul","exponent_left_div","exponent_right_mul","exponent_right_div"]):
+        #     node = exponentMulDiv(node,rule)
         elif(rule.type in ["CommutativeAddition","CommutativeMultiplication"]):
             node = commutativeProperty(node)
         elif(rule.type == "node-minus-bracket"):
@@ -218,7 +218,10 @@ class ExpressionNode():
         elif(rule.type in ["one-mul-node","node-mul-one","zero-mul-node","node-mul-zero","node-div-one","node-div-zero","zero-div-node",
                            "zero-plus-minus-node","node-plus-minus-zero","one-exp-node","node-exp-one","zero-exp-node","node-exp-zero"]):
             node= oneZeroNodeOperations(node,rule)
+        elif(rule.type == "exp-of-exp-node"):
+            node = expOfExpNode(node)
     # return OperandNode(Token("int",5))
+    #     print(rule.type)
     #     print("po:" + printTree(node))
         return node
 
@@ -629,6 +632,12 @@ def checkForBrackMulDiv(node):
                 return [Rules("brack_div_right")]
     return []
 
+
+def checkForExpOfExpNode(node):
+    if isinstance(node,OperatorNode) and node.type == "exp":
+        if isinstance(node.left_child,OperatorNode) and node.left_child.type == "exp":
+            return [Rules("exp-of-exp-node")]
+    return []
 class VarAndCoeficient:
     def __init__(self):
         self.legit = True
@@ -758,6 +767,9 @@ def checkForCommutativeProperty(node):
                     if(tmp.type not in ["mul","div"]):
                         return []
                     tmp = tmp.left_child
+                #prevents creating loops
+                if isMultiplicationWithOnePresent(node):
+                    return []
                 return [Rules("CommutativeMultiplication")]
         else:
             return []
@@ -899,6 +911,7 @@ def generateRules(node:ExpressionNode):
     rules.extend(checkForCommutativeProperty(node))
     rules.extend(checkForMinusParentheses(node))
     rules.extend(checkForOneAndZeroOperations(node))
+    rules.extend(checkForExpOfExpNode(node))
 
     return rules
 
@@ -1086,8 +1099,25 @@ def exponentMulDiv(node,rule):
         return new_node
     return "errorek"
 
+def isMultiplicationWithOnePresent(node):
+    if(isinstance(node,OperatorNode) or node.type == "mul"):
+        return isMultiplicationWithOnePresent(node.left_child) or isMultiplicationWithOnePresent(node.right_child)
+    elif (isinstance(node,OperatorNode) or node.type == "div"):
+        return isMultiplicationWithOnePresent(node.left_child)
+    elif(isinstance(node,OperandNode) and (node.type == "int" or node.type == "float")):
+        if(node.value.value == 1 or node.value.value ==0):
+            return True
+        else:
+            return False
+    elif(isinstance(node,FunctionNode)):
+        return False
+    else:
+        return False
 def divToMul(node,rule):
     if rule.type == "div_to_mul_whole_top":
+        #to prevent infinite loop
+        if isMultiplicationWithOnePresent(node):
+            return node
         new_node = OperatorNode(Token("operator","mul"))
         new_node.right_child = node.left_child
         new_node_left = OperatorNode(Token("operator","div"))
@@ -1321,7 +1351,9 @@ def mulDivBracket(node,rule):
     # print("pred:"+printTree(node))
 
     #a * (b + c) = a*b+a*c
-    if rule.type == "brack_mul_right" or rule.type == "brack_div_right":
+    # if rule.type == "brack_mul_right" or rule.type == "brack_div_right":
+    if rule.type == "brack_mul_right":
+
         multiplier = node.left_child
         tmp = node.right_child
     else:
@@ -1334,10 +1366,7 @@ def mulDivBracket(node,rule):
             new_node = OperatorNode(Token("operator","mul"))
         else:
             new_node = OperatorNode(Token("operator","div"))
-        if(rule.type in ["brack_mul_right","brack_div_right"]):
-            node.right_child = new_node
-        else:
-            node.left_child = new_node
+
         new_node.right_child = multiplier
         new_node.left_child = tmp
         return new_node
@@ -1366,4 +1395,13 @@ def mulDivBracket(node,rule):
     tmp.right_child.left_child = tmp_right
     tmp.left_child.left_child = tmp_left
     # print("po:"+printTree(new_node))
+    return new_node
+
+# (x^a)^b = x^(a*c)
+def expOfExpNode(node):
+    new_node = OperatorNode(Token("operator","exp"))
+    new_node.left_child = node.left_child.left_child
+    new_node.right_child = OperatorNode(Token("operator","mul"))
+    new_node.right_child.left_child = node.left_child.right_child
+    new_node.right_child.right_child = node.right_child
     return new_node

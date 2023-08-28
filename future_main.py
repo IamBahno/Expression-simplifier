@@ -16,7 +16,9 @@ def solveExpression(strom):
     best_solution_yet = strom
     number_of_nodes_yet = ExpressionNode.countNode(best_solution_yet.root)
 
+    # counter = 20
     while(True):
+        # counter = counter -1
         # if(strom.path_and_rules == []):
         #     if(stromy_to_do != []):
         #         strom = stromy_to_do.pop(0)
@@ -30,10 +32,12 @@ def solveExpression(strom):
             if(len(stromy_to_do) == 0):
                 return best_solution_yet
             strom = stromy_to_do.pop(0)
-        # print("lol" +printTree(strom.root))
+
+        # if counter == 0:
+        #     pass
+        #     # exit(1)
 
         strom.generatePathAndRules(strom.root,"")
-
         #end if is best, remake to coplex function later
         if(ExpressionNode.countNode(strom.root) <= number_of_nodes_yet):
             best_solution_yet = strom

@@ -1,4 +1,5 @@
-from syntax_analysis import *
+from calc_logic.expression_solver.syntax_analysis import *
+from calc_logic.expression_solver.expression_tree import ExpressionTree
 
 def prepareTreeFromInput(input):
     analyser = SyntaxAnalysis()
@@ -50,16 +51,7 @@ def solveExpression(strom):
         
     return best_solution_yet
 
-# strom = prepareTreeFromInput()
-#
-# strom = solveExpression(strom)
-#
-# stromy = [strom]
-# while True:
-#     prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)
-#     stromy.append(prevTree)
-#     if(prevTree.id == 0):
-#         break
+
 
 def doTheThing(input):
     strom = prepareTreeFromInput(input)

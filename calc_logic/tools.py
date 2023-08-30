@@ -1,4 +1,4 @@
-import lex_analysis
+import calc_logic.lex_analysis
 
 
 def printToken(token):

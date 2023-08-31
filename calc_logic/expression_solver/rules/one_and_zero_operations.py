@@ -6,7 +6,7 @@ from calc_logic.expression_solver.values.values import FloatValue
 from calc_logic.expression_solver.values.values import IntegerValue
 from calc_logic.expression_solver.values.values import VarValue
 from calc_logic.expression_solver.PathAndRule import Rules
-
+from calc_logic.expression_solver.rules.utils import minusExpresions
 
 def isOne(node):
     if isinstance(node,OperandNode):
@@ -83,7 +83,11 @@ def oneZeroNodeOperations(node,rule):
     elif rule.type == "zero-div-node":
         return OperandNode(Token("int",0))
     elif rule.type == "zero-plus-minus-node":
-        return node.right_child
+        if node.type == "plus":
+            return node.right_child
+        else:
+            new_node = minusExpresions(node.right_child)
+            return new_node
     elif rule.type == "node-plus-minus-zero":
         return node.left_child
     elif rule.type == "one-exp-node":

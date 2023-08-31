@@ -1,5 +1,6 @@
 from calc_logic.expression_solver.syntax_analysis import *
 from calc_logic.expression_solver.expression_tree import ExpressionTree
+from calc_logic.expression_solver.tree_nodes.expression_node import ExpressionNode
 
 def prepareTreeFromInput(input):
     analyser = SyntaxAnalysis()

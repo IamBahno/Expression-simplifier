@@ -125,3 +125,54 @@ def minusOneMulVar(node,rule):
     else:
         tmp.value.sign = "plus"
     return tmp
+
+
+def isNegNumOrVar(node):
+    if isinstance(node,OperandNode):
+        if node.type == "int" or node.type == "float":
+            if node.value.value < 0:
+                return True
+        else:
+            if node.value.sign == "minus":
+                return True
+    else:
+        return False
+
+
+#goes thought node, looks if there is negative num or var to take out
+def isThereNegatavive(node):
+    tmp = node
+    while True:
+        while isinstance(tmp,OperatorNode) and tmp.type == "mul":
+            if isNegNumOrVar(tmp.right_child):
+                return True
+            tmp = tmp.left_child
+        if isinstance(tmp,OperatorNode) and node.type == "exp":
+            if isinstance(tmp, OperandNode):
+                if isNegNumOrVar(tmp.left_child):
+                    return True
+                else:
+                    return False
+            else:
+                tmp = tmp.left_child
+                continue
+        elif isinstance(tmp,OperatorNode) and node.type == "div":
+            return isThereNegatavive(tmp.left_child) or isThereNegatavive(tmp.right_child)
+        elif isinstance(tmp, OperatorNode):
+            return False
+        elif isinstance(tmp,OperandNode):
+            if isNegNumOrVar(tmp):
+                return True
+        else:
+            return False
+        return False
+
+#x => -x, -3 => 3
+def negOperand(node):
+    if node.type == "int" or node.type == "float":
+        node.value.value = node.value.value * (-1)
+    else:
+        if node.value.sign == "plus":
+            node.value.sign = "minus"
+        else:
+            node.value.sign = "plus"

@@ -31,7 +31,8 @@ from calc_logic.expression_solver.rules.exp_of_exp_node import expOfExpNode
 from calc_logic.expression_solver.rules.exp_of_node import checkExpOfNode
 from calc_logic.expression_solver.rules.exp_of_node import expOfNode
 
-
+from calc_logic.expression_solver.rules.negative_exponent import checkForNegativeExpToDiv
+from calc_logic.expression_solver.rules.negative_exponent import negativeExpToDiv
 
 
 from calc_logic.expression_solver.rules.utils import zeroMinusVar

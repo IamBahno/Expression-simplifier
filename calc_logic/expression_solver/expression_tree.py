@@ -3,6 +3,7 @@ from calc_logic.error import errorExit
 from math import pi,e
 import copy
 
+from calc_logic.tools import printTree
 from calc_logic.expression_solver.tree_nodes.expression_node import OperatorNode
 from calc_logic.expression_solver.tree_nodes.expression_node import OperandNode
 from calc_logic.expression_solver.tree_nodes.expression_node import FunctionNode
@@ -228,5 +229,6 @@ def generateRules(node:ExpressionNode):
     rules.extend(RulePack.checkForOneAndZeroOperations(node))
     rules.extend(RulePack.checkForExpOfExpNode(node))
     rules.extend(RulePack.checkExpOfNode(node))
+    rules.extend(RulePack.checkForNegativeExpToDiv(node))
 
     return rules

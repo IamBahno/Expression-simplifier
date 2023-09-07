@@ -2,11 +2,17 @@ from calc_logic.lex_analysis import Token
 from calc_logic.expression_solver.values.values import FloatValue
 from calc_logic.expression_solver.values.values import IntegerValue
 from calc_logic.expression_solver.values.values import VarValue
-# import calc_logic.expression_solver.rules as RulesPack
 
 class ExpressionNode():
     def __init__(self):
         pass
+
+    def __eq__(self, other):
+        return treeEqual(self,other)
+
+    # idc
+    def __hash__(self):
+        return 1
 
     def countNode(node):
         if(isinstance(node,FunctionNode)):
@@ -40,3 +46,32 @@ class FunctionNode(ExpressionNode):
         super().__init__()
         self.type = operator.value # sin,cos,
         self.child = None
+
+
+def treeEqual(original_node,compare_to):
+    if(type(original_node) != type(compare_to)):
+        return False
+    if(isinstance(original_node,OperatorNode)):
+        if(original_node.type == compare_to.type):
+            return True and treeEqual(original_node.left_child,compare_to.left_child) and treeEqual(original_node.right_child,compare_to.right_child)
+        else:
+            return False
+    if(isinstance(original_node,OperandNode)):
+        if(original_node.type == compare_to.type):
+            if(original_node.type == "var"):
+                if(original_node.value.name == compare_to.value.name):
+                    return True
+                else:
+                    return False
+
+            if(original_node.value.value == compare_to.value.value):
+                return True
+            else:
+                return False
+        else:
+            return False
+    if(isinstance(original_node,FunctionNode)):
+        if(original_node.type == compare_to.type):
+            return True and treeEqual(original_node.child,compare_to.child)
+        else:
+            return False

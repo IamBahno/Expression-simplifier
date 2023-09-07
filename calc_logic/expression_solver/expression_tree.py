@@ -228,7 +228,15 @@ def generateRules(node:ExpressionNode):
     rules.extend(RulePack.checkForMinusParentheses(node))
     rules.extend(RulePack.checkForOneAndZeroOperations(node))
     rules.extend(RulePack.checkForExpOfExpNode(node))
-    rules.extend(RulePack.checkExpOfNode(node))
+    #crazy
+    # rules.extend(RulePack.checkExpOfNode(node))
+
     rules.extend(RulePack.checkForNegativeExpToDiv(node))
+
+    #unececery and broken
+    # rules.extend(RulePack.checkForFractionCanceling(node))
+    # rules.extend(RulePack.checkForMulOfFractCanceling(node))
+
+    rules.extend(RulePack.check_for_multinomial(node))
 
     return rules

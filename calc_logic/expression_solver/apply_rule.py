@@ -29,10 +29,17 @@ def applyRule(node, rule):
         node= RulesPack.oneZeroNodeOperations(node,rule)
     elif(rule.type == "exp-of-exp-node"):
         node = RulesPack.expOfExpNode(node)
-    elif(rule.type in ["exp-of-mult-or-div","exp-by-multiplication"]):
-        node = RulesPack.expOfNode(node,rule)
+    #function, but is a mess,
+    # elif(rule.type in ["exp-of-mult-or-div","exp-by-multiplication"]):
+    #     node = RulesPack.expOfNode(node,rule)
+
     elif rule.type == "neg-exp-to-div":
         node = RulesPack.negativeExpToDiv(node)
+    # elif (rule.type.find("fraction-canceling-") != -1) or (rule.type.find("mul-of-fract-canceling-") != -1):
+    #     node = RulesPack.fractCanceling(node,rule)
+
+    elif(rule.type == "multinomial_theorem"):
+        node = RulesPack.multinomial_theorem(node)
 
     # return OperandNode(Token("int",5))
     #     print(rule.type)

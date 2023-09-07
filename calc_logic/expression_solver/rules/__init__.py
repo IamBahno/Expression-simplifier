@@ -34,6 +34,12 @@ from calc_logic.expression_solver.rules.exp_of_node import expOfNode
 from calc_logic.expression_solver.rules.negative_exponent import checkForNegativeExpToDiv
 from calc_logic.expression_solver.rules.negative_exponent import negativeExpToDiv
 
+from calc_logic.expression_solver.rules.multinomial_theorem import check_for_multinomial
+from calc_logic.expression_solver.rules.multinomial_theorem import multinomial_theorem
+
+from calc_logic.expression_solver.rules.canceling_in_fraction import checkForFractionCanceling
+from calc_logic.expression_solver.rules.canceling_in_fraction import checkForMulOfFractCanceling
+from calc_logic.expression_solver.rules.canceling_in_fraction import fractCanceling
 
 from calc_logic.expression_solver.rules.utils import zeroMinusVar
 from calc_logic.expression_solver.rules.utils import minusOneMulVar

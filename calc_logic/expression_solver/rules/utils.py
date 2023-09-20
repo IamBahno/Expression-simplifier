@@ -38,8 +38,8 @@ def minusExpresions(node):
 # a * x * y
 def isXMulSmthing(node,var_and_const):
     if(isinstance(node,OperatorNode) and node.type == "mul"):
-        if(isinstance(node.left_child,OperandNode) and isinstance(node.left_child,OperandNode)):
-            if(node.left_child.type == "var" and node.right_child == "var"):
+        if(isinstance(node.left_child,OperandNode) and isinstance(node.right_child,OperandNode)):
+            if(node.left_child.type == "var" and node.right_child.type == "var"):
                 var_and_const.vars.append(node.left_child.value.name)
                 var_and_const.vars.append(node.right_child.value.name)
             elif(node.left_child.type == "var" and (node.right_child.type == "int" or node.right_child.type == "float")):

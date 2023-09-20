@@ -29,6 +29,18 @@ h1 {
     cursor: pointer;
 }
 
-#result-container {
+#results {
+    display: flex; /* Use flexbox for layout */
+    justify-content: space-between; /* Space between result and alternate-result */
     margin-top: 20px;
+}
+
+#result-container {
+    flex: 1; /* Expand to fill available space */
+    margin-right: 10px; /* Add some spacing between result and alternate-result */
+}
+
+#alternate-result-container {
+    flex: 1; /* Expand to fill available space */
+    margin-left: 10px; /* Add some spacing between result and alternate-result */
 }

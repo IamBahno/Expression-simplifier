@@ -10,6 +10,7 @@ def create_app():
         #unsanitize
         input = input.replace("|","/")
         expressions = doTheThing(input)
+        print(expressions)
         return jsonify(expressions)
 
     from .views import views

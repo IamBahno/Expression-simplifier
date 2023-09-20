@@ -3,6 +3,16 @@ from calc_logic.expression_solver.values.values import FloatValue
 from calc_logic.expression_solver.values.values import IntegerValue
 from calc_logic.expression_solver.values.values import VarValue
 
+FUNC_SCORE = 1
+VAR_SCORE = 1
+INT_SCORE = 1
+FLOAT_SCORE = 1
+PLUS_SCORE = 1
+MINUS_SCORE = 1
+MUL_SCORE = 1
+DIV_SCORE = 1
+EXP_SCORE = 1
+
 class ExpressionNode():
     def __init__(self):
         pass
@@ -21,6 +31,42 @@ class ExpressionNode():
             return 1 + ExpressionNode.countNode(node.left_child) + ExpressionNode.countNode(node.right_child)
         else:
             return 1
+
+
+    # in expanded solution is sum of terms
+    def expandedSolutionScore(node):
+        if isinstance(node,FunctionNode):
+            return FUNC_SCORE + ExpressionNode.expandedSolutionScore(node.child)
+        elif isinstance(node,OperandNode):
+            if node.type == "var":
+                return VAR_SCORE
+            elif node.type == "int":
+                return INT_SCORE
+            else:
+                return FLOAT_SCORE
+        else:
+            if node.type == "plus":
+                left_mul = 1
+                right_mul = 1
+                if isinstance(node.left_child,OperatorNode):
+                    if node.left_child.type == "plus" or node.left_child.type == "minus":
+                        left_mul =+ 1
+                if isinstance(node.right_child,OperatorNode):
+                    if node.right_child.type == "plus":
+                        right_mul += 1
+                return PLUS_SCORE + left_mul * ExpressionNode.expandedSolutionScore(node.left_child) + right_mul * ExpressionNode.expandedSolutionScore(node.right_child)
+            elif node.type == "minus":
+                if isinstance(node.left_child,OperatorNode):
+                    if node.left_child.type == "plus" or node.left_child.type == "minus":
+                        left_mul =+ 1
+                return MINUS_SCORE + left_mul * ExpressionNode.expandedSolutionScore(node.left_child) + ExpressionNode.expandedSolutionScore(node.right_child)
+            elif node.type == "mul":
+                return MUL_SCORE + ExpressionNode.expandedSolutionScore(node.left_child) + ExpressionNode.expandedSolutionScore(node.right_child)
+            elif node.type == "div":
+                return DIV_SCORE + ExpressionNode.expandedSolutionScore(node.left_child) + ExpressionNode.expandedSolutionScore(node.right_child)
+            elif node.type == "exp":
+                return EXP_SCORE + ExpressionNode.expandedSolutionScore(node.left_child) + ExpressionNode.expandedSolutionScore(node.right_child)
+
 
 class OperatorNode(ExpressionNode):
     def __init__(self,operator : Token):

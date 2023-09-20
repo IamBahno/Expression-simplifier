@@ -10,7 +10,15 @@
         <input type="text" id="input-field" placeholder="Enter a math expression">
         <button id="solve-button">Solve</button>
     </div>
-    <div id="result-container"></div>
+    <div id="results">
+        <div id="result-container">
+            <!-- This is where your results will be displayed -->
+        </div>
+        <div id="alternate-result-container">
+            <!-- This is the alternate result container -->
+        </div>
+    </div>
+    <div id="output"> </div>
 
 <!--    <script>-->
 <!--        const inputField = document.getElementById("input-field");-->
@@ -31,6 +39,8 @@
         const inputField = document.getElementById("input-field");
         const solveButton = document.getElementById("solve-button");
         const resultContainer = document.getElementById("result-container");
+        const alternateResultContainer = document.getElementById("alternate-result-container");
+
 
         solveButton.addEventListener("click", async () => {
             const inputExpression = inputField.value;
@@ -40,12 +50,37 @@
                 const response = await fetch(`/get_expressions/${sanitizedExpression}`);
                 const expressions = await response.json();
 
+                // Handle the case where responseData is a list of two lists of strings
+                if (Array.isArray(expressions) && expressions.length === 2 && Array.isArray(expressions[0]) && Array.isArray(expressions[1])) {
+
+                const [list1, list2] = expressions;
+                // Do something with list1 and list2
+                                // Display the first list in result-container
+                let list1HTML = "<h2>Solution</h2>";
+                list1.forEach(expression => {
+                    list1HTML += `<p>${expression}</p>`;
+                });
+                resultContainer.innerHTML = list1HTML;
+
+                // Display the second list in alternate-result-container
+                let list2HTML = "<h2>Expanded Solution</h2>";
+                list2.forEach(expression => {
+                    list2HTML += `<p>${expression}</p>`;
+                });
+                alternateResultContainer.innerHTML = list2HTML;
+                }
+
+
+                // there is no expanded solution
+                else{
+                console.log("HELLO");
                 // Display the expressions in the result container
-                let expressionsHTML = "";
+                let expressionsHTML = "<h2>Solution</h2>";
                 expressions.forEach(expression => {
                     expressionsHTML += `<p>${expression}</p>`;
                 });
                 resultContainer.innerHTML = expressionsHTML;
+                }
             } catch (error) {
                 console.error('Error fetching expressions:', error);
             }

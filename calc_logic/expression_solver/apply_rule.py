@@ -1,4 +1,5 @@
 import calc_logic.expression_solver.rules as RulesPack
+from calc_logic.tools import printTree
 
 def applyRule(node, rule):
     # print("pred:" + printTree(node))
@@ -42,6 +43,6 @@ def applyRule(node, rule):
         node = RulesPack.multinomial_theorem(node)
 
     # return OperandNode(Token("int",5))
-    #     print(rule.type)
-    #     print("po:" + printTree(node))
+    # print(rule.type)
+    # print("po:" + printTree(node))
     return node

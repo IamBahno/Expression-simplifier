@@ -11,6 +11,8 @@ from calc_logic.expression_solver.tree_nodes.expression_node import ExpressionNo
 
 import calc_logic.expression_solver.rules as RulePack
 from calc_logic.expression_solver.PathAndRule import PathAndRule
+from calc_logic.expression_solver.tree_rule_val import TreeRuleValue
+from calc_logic.expression_solver.tree_rule_val import ListOfTreeRuleValues
 from calc_logic.expression_solver.apply_rule import applyRule
 
 
@@ -24,6 +26,7 @@ class ExpressionTree():
         self.root = None
         self.father_tree_id = 0
         self.id = 0
+        self.rules_applied = 0
 
     # function constants converts  to floats
     def tokenToNode(token: Token) -> ExpressionNode:
@@ -149,24 +152,41 @@ class ExpressionTree():
                 return True
         return False
 
-    # return list of new trees
-    def generateNextGeneration(self):
-        # print(self.id,self.father_tree_id)
-        # print(printTree(self.root))
-        newTrees = []
-        # print("puvodni strom:"+ printTree(self.root))
+    # takes TreeRuleValue execute the rule
+    # find rules and paths in new strom
+    # return tree and list of new TreeRuleValue
+    @staticmethod
+    def generateNextGeneration(self : TreeRuleValue):
+
+        new_tree = copy.deepcopy(self.tree)
+        new_tree.applyRuleOnTree(self.rule_and_path)
+        if new_tree.isTreeAlreadyDone():
+            return "done",None
+        new_tree.rules_applied += 1
+        new_tree.path_and_rules = []
+        ExpressionTree.tree_counter += 1
+        new_tree.id = ExpressionTree.tree_counter
+        new_tree.father_tree_id = self.tree.id
+        ExpressionTree.finished_trees.append(new_tree)
+
+        new_TreeRuleVals = []
+        new_tree.generatePathAndRules(new_tree.root,"")
+        for i in new_tree.path_and_rules:
+            new_TreeRuleVals.append(TreeRuleValue(new_tree,i)) #new tree is just reference
+
+        return new_tree,new_TreeRuleVals
+
+    def gen_first_generation(self):
+        self.generatePathAndRules(self.root,"")
+        new_gen = ListOfTreeRuleValues()
         for i in self.path_and_rules:
-            treeCopy = copy.deepcopy(self)
-            treeCopy.path_and_rules = []
-            ExpressionTree.tree_counter += 1
-            treeCopy.id = ExpressionTree.tree_counter
-            treeCopy.father_tree_id = self.id
-            treeCopy.applyRuleOnTree(i)
-            # print(i.rule.type +"      " +i.path)
-            # print("synek:" + printTree(treeCopy.root))
-            newTrees.append(treeCopy)
-        ExpressionTree.finished_trees.append(self)
-        return newTrees
+            new_gen.insert(TreeRuleValue(self,i))
+        return new_gen
+
+
+
+
+
 
     def getRidOfBrakcets(str):
         without_brackets = False

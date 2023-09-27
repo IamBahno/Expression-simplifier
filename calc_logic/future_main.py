@@ -1,11 +1,11 @@
 from calc_logic.expression_solver.syntax_analysis import *
 from calc_logic.expression_solver.expression_tree import ExpressionTree
 from calc_logic.expression_solver.tree_nodes.expression_node import ExpressionNode
+from calc_logic.expression_solver.tree_rule_val import ListOfTreeRuleValues
 import time
 
 TIME_LIMIT = 10
 
-#TODO priority queue
 
 def prepareTreeFromInput(input):
     analyser = SyntaxAnalysis()
@@ -18,8 +18,8 @@ def prepareTreeFromInput(input):
     return strom
 
 def solveExpression(strom):
-    strom.generatePathAndRules(strom.root,"")
-    stromy_to_do = []
+    stromy_to_do = strom.gen_first_generation()
+
     best_solution_yet = strom
     number_of_nodes_yet = ExpressionNode.countNode(best_solution_yet.root)
 
@@ -29,40 +29,33 @@ def solveExpression(strom):
     time_limit = TIME_LIMIT
     start_time = time.time()
 
-    # counter = 20
+    # counter = 0
     while(True):
-        # counter = counter -1
-        # if(strom.path_and_rules == []):
-        #     if(stromy_to_do != []):
-        #         strom = stromy_to_do.pop(0)
-        #     else:
-        #         break
-        stromy_to_do.extend( strom.generateNextGeneration())
-        if(stromy_to_do == []):
+        # counter = counter +1
+        # if counter == 7:
+        #     exit(1)
+        try:
+            tree_rule_val = stromy_to_do.pop()
+        except:
             return [best_solution_yet,expanded_solution]
-        strom = stromy_to_do.pop(0)
-        while strom.isTreeAlreadyDone():
-            if(len(stromy_to_do) == 0):
-                return [best_solution_yet, expanded_solution]
-            strom = stromy_to_do.pop(0)
 
-        # if counter == 0:
-        #     pass
-            # exit(1)
+        new_tree,new_gen = ExpressionTree.generateNextGeneration(tree_rule_val)
+        if new_tree == "done":
+            continue
+        for i in new_gen:
+            stromy_to_do.insert(i)
+        if stromy_to_do == []:
+            return [best_solution_yet,expanded_solution]
 
-        print("lol" + printTree(strom.root))
 
-        strom.generatePathAndRules(strom.root,"")
         #end if is best, remake to coplex function later
-        if(ExpressionNode.countNode(strom.root) <= number_of_nodes_yet):
-            best_solution_yet = strom
-            number_of_nodes_yet = ExpressionNode.countNode(strom.root)
-        if(ExpressionNode.expandedSolutionScore(strom.root) > expanded_score):
-            expanded_solution = strom
-            expanded_score = ExpressionNode.expandedSolutionScore(strom.root)
+        if(ExpressionNode.countNode(new_tree.root) <= number_of_nodes_yet):
+            best_solution_yet = new_tree
+            number_of_nodes_yet = ExpressionNode.countNode(new_tree.root)
+        if(ExpressionNode.expandedSolutionScore(new_tree.root) > expanded_score):
+            expanded_solution = new_tree
+            expanded_score = ExpressionNode.expandedSolutionScore(new_tree.root)
 
-        if(strom.path_and_rules==[]):
-            return [strom,expanded_solution]
 
         # Check if the time limit has been reached
         current_time = time.time()

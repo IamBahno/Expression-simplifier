@@ -10,16 +10,10 @@ from calc_logic.expression_solver.PathAndRule import Rules
 import copy
 
 # (x*y)^a
-# (x+y)^a , a has to be positive int in this case
 def checkExpOfNode(node):
     if isinstance(node,OperatorNode) and node.type == "exp":
         if isinstance(node.left_child,OperatorNode) and (node.left_child.type == "mul" or node.left_child.type == "div"):
             return [Rules("exp-of-mult-or-div")]
-        else:
-            if isinstance(node.right_child,OperandNode):
-                if node.right_child.type == "int" or (node.right_child.type == "float" and node.right_child.value.value.is_integer()):
-                    if node.right_child.value.value >= 1:
-                        return [Rules("exp-by-multiplication")]
     return []
 
 def expOfNode(node,rule):
@@ -60,19 +54,5 @@ def expOfNode(node,rule):
             new_node.right_child.right_child = copy.deepcopy(node.right_child)
             return new_node
 
-    #(a+b)^x ,(func)^2 ...
-    #(a+b)*(a+b)*(a+b)...x-times
-    #exponent is integer
-    # exponent by multiplication
-    else:
-        new_node = OperatorNode(Token("operator","mul"))
-        tmp = new_node
-        for i in range(int(node.right_child.value.value)-2):
-            tmp.right_child= copy.deepcopy(node.left_child)
-            tmp.left_child = OperatorNode(Token("operator","mul"))
-            tmp = tmp.left_child
-        tmp.right_child = copy.deepcopy(node.left_child)
-        tmp.left_child = copy.deepcopy(node.left_child)
-        return new_node
 
     return node

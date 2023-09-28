@@ -5,13 +5,13 @@ from calc_logic.expression_solver.values.values import VarValue
 
 FUNC_SCORE = 1
 VAR_SCORE = 1
-INT_SCORE = 1
+INT_SCORE = 2
 FLOAT_SCORE = 1
-PLUS_SCORE = 1
+PLUS_SCORE = 3
 MINUS_SCORE = 1
-MUL_SCORE = 1
-DIV_SCORE = 1
-EXP_SCORE = 1
+MUL_SCORE = 2
+DIV_SCORE = 2
+EXP_SCORE = 4
 
 class ExpressionNode():
     def __init__(self):

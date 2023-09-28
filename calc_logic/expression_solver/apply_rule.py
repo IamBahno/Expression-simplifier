@@ -31,8 +31,8 @@ def applyRule(node, rule):
     elif(rule.type == "exp-of-exp-node"):
         node = RulesPack.expOfExpNode(node)
     #function, but is a mess,
-    # elif(rule.type in ["exp-of-mult-or-div","exp-by-multiplication"]):
-    #     node = RulesPack.expOfNode(node,rule)
+    elif(rule.type in ["exp-of-mult-or-div"]):
+        node = RulesPack.expOfNode(node,rule)
 
     elif rule.type == "neg-exp-to-div":
         node = RulesPack.negativeExpToDiv(node)

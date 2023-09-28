@@ -20,3 +20,5 @@ def divisorGenerator(n):
                 large_divisors.append(n / i)
     for divisor in reversed(large_divisors):
         yield int(divisor)
+
+

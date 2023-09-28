@@ -6,7 +6,6 @@ import time
 
 TIME_LIMIT = 10
 
-
 def prepareTreeFromInput(input):
     analyser = SyntaxAnalysis()
     analyser.loadTokens(input)
@@ -63,7 +62,7 @@ def solveExpression(strom):
         if elapsed_time >= time_limit:
             print("time_limit")
             break  # Exit the loop if the time limit is reached
-
+        print(printTree(new_tree.root))
         
     return [best_solution_yet,expanded_solution]
 

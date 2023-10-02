@@ -43,3 +43,6 @@ from calc_logic.expression_solver.rules.canceling_in_fraction import fractCancel
 
 from calc_logic.expression_solver.rules.utils import zeroMinusVar
 from calc_logic.expression_solver.rules.utils import minusOneMulVar
+
+from calc_logic.expression_solver.rules.compute_function import checkForComputeFunc
+from calc_logic.expression_solver.rules.compute_function import computeFunction

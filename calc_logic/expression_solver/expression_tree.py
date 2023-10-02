@@ -3,7 +3,6 @@ from calc_logic.error import errorExit
 from math import pi,e
 import copy
 
-from calc_logic.tools import printTree
 from calc_logic.expression_solver.tree_nodes.expression_node import OperatorNode
 from calc_logic.expression_solver.tree_nodes.expression_node import OperandNode
 from calc_logic.expression_solver.tree_nodes.expression_node import FunctionNode
@@ -27,6 +26,7 @@ class ExpressionTree():
         self.father_tree_id = 0
         self.id = 0
         self.rules_applied = 0
+        self.rule_applied_to_get = ""
 
     # function constants converts  to floats
     def tokenToNode(token: Token) -> ExpressionNode:
@@ -44,7 +44,7 @@ class ExpressionTree():
                 tmp.value.constant_value = "exp"
                 return tmp
             else:
-                if token.value not in ["sin", "cos", "ln"]:
+                if token.value not in ["sin", "cos","tg","ln"]:
                     return errorExit("Not known function error")
                 else:
                     return FunctionNode(token)
@@ -72,7 +72,7 @@ class ExpressionTree():
             if (root.child == None):
                 root.child = new_node
             else:
-                root.child = ExpressionNode.addNodeToOpen(root.child, new_node)
+                root.child = ExpressionTree.addNodeToOpen(root.child, new_node)
         elif (isinstance(root, OperatorNode)):
             if (root.left_child == None):
                 root.left_child = new_node
@@ -164,6 +164,7 @@ class ExpressionTree():
             return "done",None
         new_tree.rules_applied += 1
         new_tree.path_and_rules = []
+        new_tree.rule_applied_to_get = self.rule_and_path.rule
         ExpressionTree.tree_counter += 1
         new_tree.id = ExpressionTree.tree_counter
         new_tree.father_tree_id = self.tree.id
@@ -257,5 +258,6 @@ def generateRules(node:ExpressionNode):
     # rules.extend(RulePack.checkForMulOfFractCanceling(node))
 
     rules.extend(RulePack.check_for_multinomial(node))
+    rules.extend(RulePack.checkForComputeFunc(node))
 
     return rules

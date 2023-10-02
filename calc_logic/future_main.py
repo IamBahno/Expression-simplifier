@@ -2,6 +2,9 @@ from calc_logic.expression_solver.syntax_analysis import *
 from calc_logic.expression_solver.expression_tree import ExpressionTree
 from calc_logic.expression_solver.tree_nodes.expression_node import ExpressionNode
 from calc_logic.expression_solver.tree_rule_val import ListOfTreeRuleValues
+from calc_logic.tools import printTree
+from calc_logic.help_functions import getListOfAncestors
+from calc_logic.help_functions import listOfTreesToStrings
 import time
 
 TIME_LIMIT = 10
@@ -18,6 +21,7 @@ def prepareTreeFromInput(input):
 
 def solveExpression(strom):
     stromy_to_do = strom.gen_first_generation()
+    print(printTree(strom.root))
 
     best_solution_yet = strom
     number_of_nodes_yet = ExpressionNode.countNode(best_solution_yet.root)
@@ -62,7 +66,7 @@ def solveExpression(strom):
         if elapsed_time >= time_limit:
             print("time_limit")
             break  # Exit the loop if the time limit is reached
-        print(printTree(new_tree.root))
+        # print(printTree(new_tree.root))
         
     return [best_solution_yet,expanded_solution]
 
@@ -77,45 +81,13 @@ def doTheThing(input):
     expanded_strom = stromy[1]
     print(printTree(strom.root))
     print("expanded" + printTree(expanded_strom.root))
-    stromy = [strom]
+    stromy = getListOfAncestors(strom)
+    stringStromy = listOfTreesToStrings(stromy)
 
-    #best strom
-    prevTree = ExpressionTree.getFinishedTree(strom.father_tree_id)
-    while True and prevTree != None:
-        stromy.append(prevTree)
-        if (prevTree.id == 0):
-            break
-        prevTree = ExpressionTree.getFinishedTree(prevTree.father_tree_id)
-
-    stringStromy = []
-
-    for i in stromy:
-        str = ExpressionTree.treeToInfix(i.root)
-        str = ExpressionTree.getRidOfBrakcets(str)
-        stringStromy.append(str)
-
-    stringStromy.reverse()
-    #######
-
-    expanded_stromy = [expanded_strom]
-    #expanded strom
+    # #expanded strom
     if expanded_strom != strom:
-        prevTree = ExpressionTree.getFinishedTree(expanded_strom.father_tree_id)
-        while True and prevTree != None:
-            expanded_stromy.append(prevTree)
-            if (prevTree.id == 0):
-                break
-            prevTree = ExpressionTree.getFinishedTree(prevTree.father_tree_id)
-
-        stringExpandedStromy = []
-
-        for i in expanded_stromy:
-            str = ExpressionTree.treeToInfix(i.root)
-            str = ExpressionTree.getRidOfBrakcets(str)
-            stringExpandedStromy.append(str)
-
-        stringExpandedStromy.reverse()
-
+        expanded_stromy = getListOfAncestors(expanded_strom)
+        stringExpandedStromy = listOfTreesToStrings(expanded_stromy)
         print("program successful end 2")
         return [stringStromy,stringExpandedStromy]
 

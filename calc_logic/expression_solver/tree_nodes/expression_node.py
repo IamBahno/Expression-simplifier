@@ -45,9 +45,9 @@ class ExpressionNode():
             else:
                 return FLOAT_SCORE
         else:
+            left_mul = 1
+            right_mul = 1
             if node.type == "plus":
-                left_mul = 1
-                right_mul = 1
                 if isinstance(node.left_child,OperatorNode):
                     if node.left_child.type == "plus" or node.left_child.type == "minus":
                         left_mul =+ 1

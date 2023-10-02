@@ -6,7 +6,6 @@ from calc_logic.expression_solver.values.values import FloatValue
 from calc_logic.expression_solver.values.values import IntegerValue
 from calc_logic.expression_solver.values.values import VarValue
 from calc_logic.expression_solver.PathAndRule import Rules
-from calc_logic.tools import printTree
 import copy
 import math
 
@@ -154,8 +153,6 @@ def multinomial_theorem(node):
                 final_nodes.append(TermAndSign(new_node,sign))
 
     #now get all the terms together
-    # for i in final_nodes:
-    #     print(printTree(i.term),i.sign)
     #get posivite sign at the end
     for i in range(len(final_nodes)):
         if final_nodes[i].sign == "plus":

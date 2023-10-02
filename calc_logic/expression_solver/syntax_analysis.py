@@ -1,8 +1,6 @@
 from calc_logic.lex_analysis import Token,InputParser
 from calc_logic.error import errorExit
 
-from calc_logic.tools import printToken
-from calc_logic.tools import printTree
 
 
 

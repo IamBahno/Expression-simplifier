@@ -6,7 +6,6 @@ from calc_logic.expression_solver.values.values import FloatValue
 from calc_logic.expression_solver.values.values import IntegerValue
 from calc_logic.expression_solver.values.values import VarValue
 from calc_logic.expression_solver.PathAndRule import Rules
-from calc_logic.tools import printTree
 from calc_logic.expression_solver.rules.utils import treeEqual
 
 import copy

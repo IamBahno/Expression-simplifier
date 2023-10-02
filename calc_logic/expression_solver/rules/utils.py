@@ -93,7 +93,7 @@ def treeEqual(original_node,compare_to):
         else:
             return False
     if(isinstance(original_node,FunctionNode)):
-        if(original_node.value == compare_to.value):
+        if(original_node.type == compare_to.type):
             return True and treeEqual(original_node.child,compare_to.child)
         else:
             return False

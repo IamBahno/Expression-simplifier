@@ -41,6 +41,8 @@ def applyRule(node, rule):
 
     elif(rule.type == "multinomial_theorem"):
         node = RulesPack.multinomial_theorem(node)
+    elif(rule.type == "compute_function"):
+        node = RulesPack.computeFunction(node)
 
     # return OperandNode(Token("int",5))
     # print(rule.type)

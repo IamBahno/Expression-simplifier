@@ -1,5 +1,7 @@
 # 🧠 Math Expression Simplifier
 
+Built in the summer of 2023
+
 A symbolic simplifier that parses mathematical expressions into trees and applies a wide range of hand-coded transformation rules to explore both simplified and expanded forms of the expression.
 
 ---
